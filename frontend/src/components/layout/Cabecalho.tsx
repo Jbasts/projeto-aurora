@@ -19,7 +19,7 @@ export function Cabecalho({ usuario, aoSair }: CabecalhoProps) {
     <header className="bg-fundo-topo">
       <div className="mx-auto flex max-w-conteudo flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3">
         <Link to="/" className="alvo-toque inline-flex items-center rounded-campo">
-          <Logo className="h-10 w-auto" />
+          <Logo className="h-11 w-auto" />
         </Link>
 
         <button

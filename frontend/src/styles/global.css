@@ -58,8 +58,3 @@
     }
   }
 }
-
-/* Logo provisório tem texto preto: no modo escuro, inverte a luminosidade e mantém os matizes. */
-[data-tema='escuro'] .logo-adaptavel {
-  filter: invert(1) hue-rotate(180deg);
-}
