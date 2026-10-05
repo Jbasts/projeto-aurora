@@ -1,0 +1,65 @@
+@import 'tailwindcss';
+@import './tokens.css';
+
+/* Tailwind só enxerga os tokens do projeto: as cores padrão são desligadas. */
+@theme inline {
+  --color-*: initial;
+  --color-primaria: var(--cor-primaria);
+  --color-primaria-hover: var(--cor-primaria-hover);
+  --color-primaria-clara: var(--cor-primaria-clara);
+  --color-sobre-primaria: var(--cor-sobre-primaria);
+  --color-fundo-topo: var(--cor-fundo-topo);
+  --color-fundo: var(--cor-fundo);
+  --color-fundo-auth: var(--cor-fundo-auth);
+  --color-texto: var(--cor-texto);
+  --color-texto-suave: var(--cor-texto-suave);
+  --color-borda-campo: var(--cor-borda-campo);
+  --color-divisor: var(--cor-divisor);
+  --color-erro: var(--cor-erro);
+  --color-sobreposicao: var(--cor-sobreposicao);
+
+  --font-sans: var(--fonte-base);
+
+  --radius-botao: var(--raio-botao);
+  --radius-campo: var(--raio-campo);
+  --radius-card: var(--raio-card);
+
+  --container-conteudo: var(--largura-conteudo);
+}
+
+/* Alvo de toque mínimo de 44×44 px, mesmo com a fonte reduzida (A-). */
+@utility alvo-toque {
+  min-height: max(44px, 2.75rem);
+  min-width: max(44px, 2.75rem);
+}
+
+@layer base {
+  html {
+    font-family: var(--fonte-base);
+    background-color: var(--cor-fundo);
+    color: var(--cor-texto);
+  }
+
+  body {
+    min-height: 100vh;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--cor-primaria);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* Logo provisório tem texto preto: no modo escuro, inverte a luminosidade e mantém os matizes. */
+[data-tema='escuro'] .logo-adaptavel {
+  filter: invert(1) hue-rotate(180deg);
+}

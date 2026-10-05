@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Plataforma de cadastro e mapeamento de pessoas em situação de rua em Petrópolis/RJ."
+    />
+    <title>Projeto Aurora</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      // Aplica tema e tamanho de fonte salvos antes da primeira pintura (evita "piscar").
+      // A lógica completa fica em src/contexts/PreferenciasProvider.tsx.
+      try {
+        var tema = localStorage.getItem('aurora:tema')
+        if (tema !== 'claro' && tema !== 'escuro') {
+          tema = matchMedia('(prefers-color-scheme: dark)').matches ? 'escuro' : 'claro'
+        }
+        document.documentElement.dataset.tema = tema
+        var niveis = [87.5, 100, 112.5, 125]
+        var nivel = Number(localStorage.getItem('aurora:nivel-fonte'))
+        if (niveis[nivel]) document.documentElement.style.fontSize = niveis[nivel] + '%'
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

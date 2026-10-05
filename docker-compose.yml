@@ -1,0 +1,11 @@
+# Serviços de apoio ao desenvolvimento.
+# O PostgreSQL 16 roda instalado localmente (banco "projeto-aurora"); aqui fica só o Mailpit.
+# Subir com: podman compose up -d   (ou docker compose up -d)
+services:
+  mailpit:
+    image: docker.io/axllent/mailpit:latest
+    container_name: aurora-mailpit
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_SMTP_PORTA:-1025}:1025" # SMTP usado pelo backend (SMTP_PORT)
+      - "${MAILPIT_WEB_PORTA:-8025}:8025" # Caixa de entrada: http://localhost:8025

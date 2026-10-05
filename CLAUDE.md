@@ -8,17 +8,20 @@ Os protótipos estão em `docs/telas.pdf` (uma tela por página; identifique cad
 ## Stack
 - Backend: Python 3.12, FastAPI, SQLAlchemy 2.0, Alembic, Pydantic v2, PostgreSQL 16
 - Frontend: React + Vite + TypeScript, React Router, TanStack Query, react-hook-form + zod, Tailwind CSS, react-leaflet + leaflet.heat (OpenStreetMap)
-- Dev: Docker Compose (PostgreSQL + Mailpit), pytest, Vitest, Ruff, ESLint + Prettier
+- Dev: PostgreSQL 16 instalado localmente (serviço `postgresql-x64-16`, banco `projeto-aurora`, usuário `postgres`), Mailpit via Podman Compose, pytest, Vitest, Ruff, ESLint + Prettier
 
 ## Comandos
 (Mantenha esta seção atualizada conforme o projeto evoluir.)
-- Banco e email de teste: `docker compose up -d` (Mailpit em http://localhost:8025)
-- Backend: `cd backend && alembic upgrade head && uvicorn app.main:app --reload`
+- Configuração inicial: copiar `backend/.env.example` para `backend/.env` e preencher a senha do banco; `cd backend && py -3.12 -m venv .venv && .venv\Scripts\pip install -r requirements.txt`; `cd frontend && npm install`
+- Email de teste: `podman machine start` (uma vez por sessão) e `podman compose up -d` (Mailpit em http://localhost:8025)
+- Backend (venv em `backend/.venv`; use `.venv\Scripts\` antes dos comandos ou ative o venv): `cd backend && alembic upgrade head && uvicorn app.main:app --reload` (API em http://localhost:8000/api/v1, docs em /docs)
 - Primeiro admin: `cd backend && python -m app.scripts.criar_admin`
 - Dados fictícios: `cd backend && python -m app.scripts.seed_dev`
 - Testes backend: `cd backend && pytest`
-- Frontend: `cd frontend && npm run dev`
+- Lint backend: `cd backend && ruff check . && ruff format --check .`
+- Frontend: `cd frontend && npm run dev` (http://localhost:5173; `/api` é redirecionado para o backend na porta 8000)
 - Testes frontend: `cd frontend && npm test`
+- Lint e tipos do frontend: `cd frontend && npm run lint && npm run typecheck`
 
 ## Regras de trabalho
 - Trabalhe **uma fase por vez** (seção "Fases" da especificação). Não implemente nada fora da fase pedida.

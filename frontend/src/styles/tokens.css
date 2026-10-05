@@ -1,0 +1,44 @@
+/* Tokens de design (seção 5 da especificação). Use sempre estes tokens — nunca cores soltas. */
+:root {
+  --cor-primaria: #1e7f6b;
+  --cor-primaria-hover: #17695a;
+  --cor-primaria-clara: #36b39a; /* só decorativo: ondas e ícones grandes */
+  --cor-sobre-primaria: #ffffff; /* texto sobre fundo --cor-primaria */
+  --cor-fundo-topo: #eef8f5;
+  --cor-fundo: #ffffff;
+  --cor-fundo-auth: #f7f9f8;
+  --cor-texto: #2e2e2e;
+  --cor-texto-suave: #5f6368;
+  --cor-borda-campo: #5b8f84;
+  --cor-divisor: #cfe3dd;
+  --cor-erro: #b3261e;
+  --cor-sobreposicao: rgb(30 127 107 / 0.55); /* véu verde sobre imagens */
+
+  --fonte-base: 'Montserrat', system-ui, sans-serif;
+
+  --raio-botao: 10px;
+  --raio-campo: 8px;
+  --raio-card: 12px;
+
+  --largura-conteudo: 72rem;
+
+  color-scheme: light;
+}
+
+[data-tema='escuro'] {
+  --cor-primaria: #5cc9af;
+  --cor-primaria-hover: #7fd8c3;
+  --cor-primaria-clara: #2f9a84;
+  --cor-sobre-primaria: #0f1a17;
+  --cor-fundo-topo: #17231f;
+  --cor-fundo: #111816;
+  --cor-fundo-auth: #0e1513;
+  --cor-texto: #e6edeb;
+  --cor-texto-suave: #a7b3b0;
+  --cor-borda-campo: #78ada0;
+  --cor-divisor: #2a3a36;
+  --cor-erro: #f2b8b5;
+  --cor-sobreposicao: rgb(15 60 50 / 0.65);
+
+  color-scheme: dark;
+}

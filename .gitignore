@@ -1,0 +1,22 @@
+# Ambiente
+.env
+*.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+backend/uploads/
+
+# Node
+node_modules/
+frontend/dist/
+coverage/
+
+# Editores e sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

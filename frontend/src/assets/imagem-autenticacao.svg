@@ -1,0 +1,19 @@
+<!-- Imagem PROVISÓRIA (serra estilizada). Troque por uma foto de Petrópolis com o mesmo nome de arquivo,
+     ou altere o import em src/components/layout/LayoutAutenticacao.tsx. Nunca use foto de pessoa em situação de rua. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="ceu" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#cfe9e2"/>
+      <stop offset="1" stop-color="#f4faf8"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="800" fill="url(#ceu)"/>
+  <path d="M0 470 L90 380 L170 440 L260 330 L350 420 L430 350 L520 420 L600 370 V800 H0Z" fill="#9fcfc2"/>
+  <path d="M0 560 L110 470 L200 530 L300 450 L400 540 L480 480 L600 550 V800 H0Z" fill="#6fb3a2"/>
+  <path d="M0 660 L120 590 L230 640 L340 580 L450 650 L540 610 L600 640 V800 H0Z" fill="#3f8f7d"/>
+  <g fill="#2c6f60">
+    <rect x="70" y="640" width="40" height="160"/><rect x="120" y="610" width="55" height="190"/>
+    <rect x="190" y="660" width="35" height="140"/><rect x="380" y="625" width="50" height="175"/>
+    <rect x="440" y="665" width="38" height="135"/><rect x="490" y="600" width="60" height="200"/>
+  </g>
+</svg>
