@@ -16,8 +16,9 @@ Os protótipos estão em `docs/telas.pdf` (uma tela por página; identifique cad
 - Email de teste: `podman machine start` (uma vez por sessão) e `podman compose up -d` (Mailpit em http://localhost:8025)
 - Backend (venv em `backend/.venv`; use `.venv\Scripts\` antes dos comandos ou ative o venv): `cd backend && alembic upgrade head && uvicorn app.main:app --reload` (API em http://localhost:8000/api/v1, docs em /docs)
 - Primeiro admin: `cd backend && python -m app.scripts.criar_admin`
-- Dados fictícios: `cd backend && python -m app.scripts.seed_dev`
-- Testes backend: `cd backend && pytest`
+- Dados fictícios: `cd backend && python -m app.scripts.seed_dev` (só roda com o banco sem pessoas; cria contas de teste `*@projetoaurora.local` com senha `Senha12345`)
+- Nova migração: `cd backend && alembic revision --autogenerate -m "descricao"` (revise o arquivo gerado; a função `texto_busca_pessoa` e o índice `ix_pessoas_busca_trgm` são mantidos à mão)
+- Testes backend: `cd backend && pytest` (usa o banco `projeto-aurora_teste`, criado e migrado automaticamente; cada teste roda numa transação desfeita no fim)
 - Lint backend: `cd backend && ruff check . && ruff format --check .`
 - Frontend: `cd frontend && npm run dev` (http://localhost:5173; `/api` é redirecionado para o backend na porta 8000)
 - Testes frontend: `cd frontend && npm test`
