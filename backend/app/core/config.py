@@ -6,6 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Configuracoes(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
+    AMBIENTE: str = "desenvolvimento"  # "producao" ativa o cookie Secure
     DATABASE_URL: str = "postgresql+psycopg://postgres:postgres@localhost:5432/projeto-aurora"
     JWT_SECRET: str = "troque-isto"
     ACCESS_TOKEN_MINUTOS: int = 30
@@ -18,9 +19,16 @@ class Configuracoes(BaseSettings):
     ARQUIVOS_URL_SEGREDO: str = "troque-isto-tambem"
     MAX_TENTATIVAS_LOGIN: int = 5
     MINUTOS_BLOQUEIO: int = 5
+    MINUTOS_VALIDADE_TOKEN_SENHA: int = 30
+    MAX_PEDIDOS_RECUPERACAO_POR_HORA: int = 3
+    LIMITE_REQUISICOES_AUTH: str = "30/minute"
     NOMINATIM_USER_AGENT: str = "ProjetoAurora/1.0 (contato@exemplo.com)"
     ADMIN_EMAIL: str = "admin@projetoaurora.local"
     ADMIN_SENHA: str = "TroqueEstaSenha1"
+
+    @property
+    def em_producao(self) -> bool:
+        return self.AMBIENTE == "producao"
 
 
 @lru_cache

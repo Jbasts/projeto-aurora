@@ -1,20 +1,26 @@
-import { Outlet } from 'react-router'
+import { Outlet, useNavigate } from 'react-router'
 
-import type { UsuarioResumo } from '../../features/usuarios/perfis'
+import { useAutenticacao, useUsuarioLogado } from '../../contexts/autenticacao'
 import { BarraAcessibilidade } from '../BarraAcessibilidade'
 import { LinkPularConteudo } from '../LinkPularConteudo'
 import { Rodape } from '../Rodape'
 import { Cabecalho } from './Cabecalho'
 
-// TODO (Fase 2): substituir pelo usuário autenticado (GET /auth/me) e implementar "Sair".
-const USUARIO_PROVISORIO: UsuarioResumo = { nome: 'Pessoa de teste', perfil: 'ADMIN' }
-
 export function LayoutLogado() {
+  const usuario = useUsuarioLogado()
+  const { sair } = useAutenticacao()
+  const navigate = useNavigate()
+
+  const aoSair = async () => {
+    await sair()
+    navigate('/login', { replace: true })
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-fundo">
       <LinkPularConteudo />
       <BarraAcessibilidade />
-      <Cabecalho usuario={USUARIO_PROVISORIO} aoSair={() => {}} />
+      <Cabecalho usuario={usuario} aoSair={aoSair} />
       <main id="conteudo" tabIndex={-1} className="mx-auto w-full max-w-conteudo flex-1 px-4 py-8">
         <Outlet />
       </main>

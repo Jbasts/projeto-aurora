@@ -17,10 +17,26 @@ class ErroApi(Exception):
 
 
 CODIGOS_POR_STATUS = {
-    status.HTTP_401_UNAUTHORIZED: "CREDENCIAIS_INVALIDAS",
+    status.HTTP_401_UNAUTHORIZED: "TOKEN_INVALIDO",
     status.HTTP_403_FORBIDDEN: "SEM_PERMISSAO",
     status.HTTP_404_NOT_FOUND: "NAO_ENCONTRADO",
 }
+
+
+def mensagem_validacao(erro: Any) -> str:
+    """Traduz os erros do Pydantic para mensagens curtas em pt-BR."""
+    tipo = erro.get("type", "")
+    contexto = erro.get("ctx") or {}
+    if tipo == "missing":
+        return "Campo obrigatório."
+    if tipo == "string_too_short":
+        minimo = contexto.get("min_length")
+        return "Campo obrigatório." if minimo == 1 else f"Use pelo menos {minimo} caracteres."
+    if tipo == "string_too_long":
+        return f"Use no máximo {contexto.get('max_length')} caracteres."
+    if tipo == "value_error":
+        return str(erro.get("msg", "")).removeprefix("Value error, ")
+    return "Valor inválido."
 
 
 def registrar_tratadores_de_erro(app: FastAPI) -> None:
@@ -43,7 +59,7 @@ def registrar_tratadores_de_erro(app: FastAPI) -> None:
     @app.exception_handler(RequestValidationError)
     async def tratar_validacao(_: Request, erro: RequestValidationError) -> JSONResponse:
         campos = [
-            {"campo": ".".join(str(p) for p in e["loc"][1:]), "mensagem": e["msg"]}
+            {"campo": ".".join(str(p) for p in e["loc"][1:]), "mensagem": mensagem_validacao(e)}
             for e in erro.errors()
         ]
         return JSONResponse(

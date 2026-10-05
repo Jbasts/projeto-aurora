@@ -1,0 +1,10 @@
+Projeto Aurora — redefinição de senha
+
+Olá, $nome.
+
+Recebemos um pedido para criar uma nova senha na plataforma Projeto Aurora.
+Abra o link abaixo. Ele vale por $minutos minutos e só pode ser usado uma vez.
+
+$link
+
+Se você não pediu uma nova senha, ignore este email. Sua senha atual continua valendo.
