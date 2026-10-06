@@ -20,6 +20,7 @@ from app.db.sessao import obter_sessao
 from app.entities import PerfilUsuario, StatusUsuario, Usuario
 from app.main import app
 from app.services.email import Email, obter_enviador_email
+from app.services.geocodificacao import obter_geocodificador
 
 URL_TESTE = make_url(obter_configuracoes().DATABASE_URL)
 URL_TESTE = URL_TESTE.set(database=f"{URL_TESTE.database}_teste")
@@ -74,11 +75,31 @@ def emails_enviados() -> list[Email]:
     return []
 
 
+class GeocodificadorFalso:
+    """Substitui o Nominatim: os testes nunca acessam a internet."""
+
+    def __init__(self) -> None:
+        self.resposta: str | None = "Rua do Imperador, 288 – Centro, Petrópolis"
+        self.consultas: list[tuple[float, float]] = []
+
+    def endereco(self, latitude: float, longitude: float) -> str | None:
+        self.consultas.append((latitude, longitude))
+        return self.resposta
+
+
 @pytest.fixture
-def cliente(sessao: Session, emails_enviados: list[Email]) -> Iterator[TestClient]:
-    """Cliente HTTP da API usando a sessão do teste e capturando os emails enviados."""
+def geocodificador() -> GeocodificadorFalso:
+    return GeocodificadorFalso()
+
+
+@pytest.fixture
+def cliente(
+    sessao: Session, emails_enviados: list[Email], geocodificador: GeocodificadorFalso
+) -> Iterator[TestClient]:
+    """Cliente HTTP da API usando a sessão do teste, capturando emails e sem internet."""
     app.dependency_overrides[obter_sessao] = lambda: sessao
     app.dependency_overrides[obter_enviador_email] = lambda: emails_enviados.append
+    app.dependency_overrides[obter_geocodificador] = lambda: geocodificador
     limiter.enabled = False
     with TestClient(app) as cliente:
         yield cliente

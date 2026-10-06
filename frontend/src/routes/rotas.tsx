@@ -11,6 +11,7 @@ import { PaginaEditarPessoa } from '../pages/PaginaEditarPessoa'
 import { PaginaInicio } from '../pages/PaginaInicio'
 import { PaginaLinkExpirado } from '../pages/PaginaLinkExpirado'
 import { PaginaLogin } from '../pages/PaginaLogin'
+import { PaginaMapaSobDemanda } from '../pages/PaginaMapaSobDemanda'
 import { PaginaMeuPerfil } from '../pages/PaginaMeuPerfil'
 import { PaginaNaoEncontrada } from '../pages/PaginaNaoEncontrada'
 import { PaginaPerfilPessoa } from '../pages/PaginaPerfilPessoa'
@@ -44,6 +45,7 @@ export const rotas: RouteObject[] = [
           { path: '/', element: <PaginaInicio /> },
           { path: '/meu-perfil', element: <PaginaMeuPerfil /> },
           { path: '/pessoas', element: <PaginaBuscarPessoas /> },
+          { path: '/mapa', element: <PaginaMapaSobDemanda /> },
           { path: '/pessoas/:id', element: <PaginaPerfilPessoa /> },
           {
             element: <RotaComPerfil perfis={['ADMIN', 'COLABORADOR']} />,

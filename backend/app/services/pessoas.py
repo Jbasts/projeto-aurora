@@ -37,7 +37,11 @@ def _registrar(sessao: Session, acao: str, pessoa: Pessoa, usuario: Usuario, ip,
 
 
 def cadastrar(
-    sessao: Session, dados: PessoaCriacaoEntrada, usuario: Usuario, ip: str | None
+    sessao: Session,
+    dados: PessoaCriacaoEntrada,
+    usuario: Usuario,
+    ip: str | None,
+    endereco_avistamento: str | None = None,
 ) -> Pessoa:
     """Cria a pessoa (status ATIVA) e, se informado, o primeiro avistamento (etapa 3)."""
     agora = datetime.now(UTC)
@@ -61,6 +65,7 @@ def cadastrar(
             observacao=dados.avistamento.observacao,
             usuario=usuario,
             ip=ip,
+            endereco=endereco_avistamento,
         )
     sessao.commit()
     return pessoa

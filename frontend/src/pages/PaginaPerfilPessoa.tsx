@@ -19,6 +19,7 @@ import {
   useRemoverFoto,
 } from '../features/pessoas/api'
 import { erroDaFoto, MAXIMO_FOTOS_ALBUM } from '../features/pessoas/esquemas'
+import { ModalRegistrarAvistamento } from '../features/mapa/ModalRegistrarAvistamento'
 import { ModalInativar } from '../features/pessoas/ModalInativar'
 import { altFoto, iniciais, nomeCompleto } from '../features/pessoas/nomes'
 import type { Foto, Pessoa } from '../features/pessoas/tipos'
@@ -61,6 +62,7 @@ function PerfilPessoa({ pessoa }: { pessoa: Pessoa }) {
       : null,
   )
   const [inativando, setInativando] = useState(false)
+  const [registrando, setRegistrando] = useState(false)
   const reativar = useReativarPessoa()
   const inativa = pessoa.status === 'INATIVA'
 
@@ -104,6 +106,11 @@ function PerfilPessoa({ pessoa }: { pessoa: Pessoa }) {
             >
               Editar
             </Link>
+            {!inativa && (
+              <Botao variante="secundario" onClick={() => setRegistrando(true)}>
+                Registrar avistamento
+              </Botao>
+            )}
             {inativa ? (
               <Botao
                 variante="secundario"
@@ -197,6 +204,22 @@ function PerfilPessoa({ pessoa }: { pessoa: Pessoa }) {
       </div>
 
       <Album pessoa={pessoa} gestor={gestor} aoAvisar={setAviso} />
+
+      {registrando && (
+        <ModalRegistrarAvistamento
+          pessoaFixa={{ ...pessoa, url_miniatura: pessoa.foto_perfil?.url_miniatura ?? null }}
+          aoFechar={() => setRegistrando(false)}
+          aoRegistrar={(avistamento) => {
+            setRegistrando(false)
+            setAviso({
+              tipo: 'sucesso',
+              texto: avistamento.mais_recente
+                ? 'Avistamento registrado. A última localização foi atualizada.'
+                : 'Avistamento registrado.',
+            })
+          }}
+        />
+      )}
 
       {inativando && (
         <ModalInativar

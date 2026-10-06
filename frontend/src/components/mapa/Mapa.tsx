@@ -67,7 +67,12 @@ export function Mapa({
   children,
 }: MapaProps) {
   return (
-    <div role="region" aria-label={rotulo} className={`overflow-hidden rounded-card ${className}`}>
+    <div
+      role="region"
+      aria-label={rotulo}
+      // isolate: os z-index internos do Leaflet (até 1000) não passam por cima da barra fixa e dos modais.
+      className={`isolate overflow-hidden rounded-card ${className}`}
+    >
       <MapContainer
         center={centro}
         zoom={zoom}

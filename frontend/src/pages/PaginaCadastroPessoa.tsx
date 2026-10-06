@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useRef, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 
 import { ErroApi, MENSAGEM_SEM_CONEXAO } from '../api/cliente'
 import { Alerta } from '../components/Alerta'
@@ -22,6 +22,7 @@ import {
   paraDadosApi,
   type DadosPessoa,
 } from '../features/pessoas/esquemas'
+import type { EstadoCadastroComLocal } from '../features/mapa/ModalRegistrarAvistamento'
 import { SeletorLocal } from '../features/pessoas/SeletorLocal'
 import type { Coordenadas } from '../features/pessoas/tipos'
 import { useTituloDocumento } from '../hooks/useTituloDocumento'
@@ -66,7 +67,9 @@ export function PaginaCadastroPessoa() {
   const [album, setAlbum] = useState<FotoEscolhida[]>([])
   const [erroFotos, setErroFotos] = useState<string | null>(null)
 
-  const [local, setLocal] = useState<Coordenadas | null>(null)
+  // Vindo do mapa ("Cadastrar nova pessoa"), o local da etapa 3 já chega preenchido.
+  const localDoMapa = (useLocation().state as EstadoCadastroComLocal | null)?.local ?? null
+  const [local, setLocal] = useState<Coordenadas | null>(localDoMapa)
   const [vistoEm, setVistoEm] = useState(() => paraCampoDataHora(new Date()))
   const [erroVistoEm, setErroVistoEm] = useState<string | null>(null)
 
@@ -337,6 +340,11 @@ export function PaginaCadastroPessoa() {
             <p className="text-texto-suave">
               Esta etapa é opcional. Você pode registrar onde a pessoa foi vista depois.
             </p>
+            {localDoMapa && (
+              <Alerta tipo="info">
+                O local marcado veio do mapa. Confira e ajuste se precisar.
+              </Alerta>
+            )}
             <SeletorLocal valor={local} aoMudar={setLocal} />
             <div className="max-w-xs">
               <CampoTexto

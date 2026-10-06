@@ -4,6 +4,8 @@ interface ModalProps {
   titulo: string
   aoFechar: () => void
   children: ReactNode
+  /** Mais largo, para conteúdo com mapa. */
+  largo?: boolean
 }
 
 const FOCAVEIS =
@@ -13,7 +15,7 @@ const FOCAVEIS =
  * Janela de diálogo acessível: foco vai para dentro ao abrir, fica preso nela (Tab),
  * Esc fecha e o foco volta para o elemento que a abriu.
  */
-export function Modal({ titulo, aoFechar, children }: ModalProps) {
+export function Modal({ titulo, aoFechar, children, largo = false }: ModalProps) {
   const idTitulo = useId()
   const caixa = useRef<HTMLDivElement>(null)
   const aoFecharAtual = useRef(aoFechar)
@@ -61,7 +63,7 @@ export function Modal({ titulo, aoFechar, children }: ModalProps) {
         aria-modal="true"
         aria-labelledby={idTitulo}
         tabIndex={-1}
-        className="flex max-h-full w-full max-w-md flex-col gap-4 overflow-y-auto rounded-card bg-fundo p-6 shadow-xl"
+        className={`flex max-h-full w-full ${largo ? 'max-w-2xl' : 'max-w-md'} flex-col gap-4 overflow-y-auto rounded-card bg-fundo p-6 shadow-xl`}
       >
         <h2 id={idTitulo} className="text-lg font-semibold text-texto">
           {titulo}

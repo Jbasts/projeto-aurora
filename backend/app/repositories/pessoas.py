@@ -93,3 +93,21 @@ def listar(
         .limit(tamanho)
     )
     return [(pessoa, foto) for pessoa, foto in sessao.execute(consulta).all()], total
+
+
+def marcadores(sessao: Session) -> list[tuple[Pessoa, Foto | None]]:
+    """PSDR ativas que já têm última localização (seção 3.9)."""
+    return [
+        (pessoa, foto)
+        for pessoa, foto in sessao.execute(
+            select(Pessoa, Foto)
+            .outerjoin(Foto, Foto.id == Pessoa.foto_perfil_id)
+            .where(
+                Pessoa.status == StatusPessoa.ATIVA,
+                Pessoa.ultima_latitude.is_not(None),
+                Pessoa.ultima_longitude.is_not(None),
+                Pessoa.ultima_vez_visto.is_not(None),
+            )
+            .order_by(Pessoa.ultima_vez_visto.desc())
+        ).all()
+    ]

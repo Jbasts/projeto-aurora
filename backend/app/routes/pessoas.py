@@ -22,6 +22,7 @@ from app.schemas.pessoas import (
     SugestaoPessoaSaida,
 )
 from app.services.arquivos import Variante
+from app.services.geocodificacao import Geocodificador, obter_geocodificador
 
 SessaoBanco = Annotated[Session, Depends(obter_sessao)]
 UsuarioLogado = Annotated[Usuario, Depends(obter_usuario_atual)]
@@ -58,9 +59,13 @@ def sugestoes(
 
 @router.post("", response_model=PessoaSaida, status_code=status.HTTP_201_CREATED)
 def cadastrar(
-    request: Request, dados: PessoaCriacaoEntrada, usuario: Gestor, sessao: SessaoBanco
+    request: Request,
+    dados: PessoaCriacaoEntrada,
+    usuario: Gestor,
+    sessao: SessaoBanco,
+    geocodificador: Annotated[Geocodificador, Depends(obter_geocodificador)],
 ) -> PessoaSaida:
-    return controller.cadastrar(sessao, dados, usuario, ip_da_requisicao(request))
+    return controller.cadastrar(sessao, dados, usuario, ip_da_requisicao(request), geocodificador)
 
 
 @router.get("/{pessoa_id}", response_model=PessoaSaida)

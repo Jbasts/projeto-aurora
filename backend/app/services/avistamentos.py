@@ -1,10 +1,14 @@
+import uuid
 from datetime import datetime
 from decimal import Decimal
 
+from fastapi import status
 from sqlalchemy.orm import Session
 
-from app.entities import Avistamento, Pessoa, Usuario
+from app.core.erros import ErroApi
+from app.entities import Avistamento, Pessoa, StatusPessoa, Usuario
 from app.repositories import avistamentos as repositorio_avistamentos
+from app.repositories import pessoas as repositorio_pessoas
 from app.services import auditoria
 from app.services.auditoria import AcaoAuditoria
 
@@ -57,3 +61,41 @@ def registrar(
         ip=ip,
     )
     return avistamento
+
+
+def registrar_para_pessoa(
+    sessao: Session,
+    pessoa_id: uuid.UUID,
+    *,
+    latitude: float,
+    longitude: float,
+    visto_em: datetime,
+    observacao: str | None,
+    endereco: str | None,
+    usuario: Usuario,
+    ip: str | None,
+) -> tuple[Avistamento, bool]:
+    """Avistamento pelo mapa ou pelo perfil. Devolve (avistamento, se virou o mais recente)."""
+    pessoa = repositorio_pessoas.buscar_para_alterar(sessao, pessoa_id)
+    if pessoa is None:
+        raise ErroApi(status.HTTP_404_NOT_FOUND, "NAO_ENCONTRADO", "Pessoa não encontrada.")
+    if pessoa.status != StatusPessoa.ATIVA:
+        raise ErroApi(
+            status.HTTP_409_CONFLICT,
+            "VALIDACAO",
+            "Esta pessoa está inativa. Reative o cadastro antes de registrar um avistamento.",
+        )
+    avistamento = registrar(
+        sessao,
+        pessoa,
+        latitude=latitude,
+        longitude=longitude,
+        visto_em=visto_em,
+        observacao=observacao,
+        usuario=usuario,
+        ip=ip,
+        endereco=endereco,
+    )
+    mais_recente = pessoa.ultima_vez_visto == avistamento.visto_em
+    sessao.commit()
+    return avistamento, mais_recente

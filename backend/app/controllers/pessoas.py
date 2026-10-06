@@ -25,6 +25,7 @@ from app.services import arquivos as servico_arquivos
 from app.services import fotos as servico_fotos
 from app.services import pessoas as servico_pessoas
 from app.services.arquivos import Variante
+from app.services.geocodificacao import Geocodificador
 
 
 def _ref(nomes: dict[uuid.UUID, str], usuario_id: uuid.UUID | None) -> UsuarioRef | None:
@@ -139,9 +140,19 @@ def sugestoes(sessao: Session, termo: str, usuario: Usuario) -> list[SugestaoPes
 
 
 def cadastrar(
-    sessao: Session, dados: PessoaCriacaoEntrada, usuario: Usuario, ip: str | None
+    sessao: Session,
+    dados: PessoaCriacaoEntrada,
+    usuario: Usuario,
+    ip: str | None,
+    geocodificador: Geocodificador,
 ) -> PessoaSaida:
-    pessoa = servico_pessoas.cadastrar(sessao, dados, usuario, ip)
+    # Endereço buscado antes da transação: a consulta externa não segura o banco.
+    endereco = (
+        geocodificador.endereco(dados.avistamento.latitude, dados.avistamento.longitude)
+        if dados.avistamento
+        else None
+    )
+    pessoa = servico_pessoas.cadastrar(sessao, dados, usuario, ip, endereco)
     return _pessoa_saida(sessao, pessoa)
 
 

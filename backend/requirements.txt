@@ -11,9 +11,9 @@ email-validator==2.*
 slowapi==0.1.*
 pillow==11.*
 python-multipart==0.0.*
+httpx==0.28.*
 
 # Desenvolvimento
 Faker==33.*
 pytest==8.*
-httpx==0.28.*
 ruff==0.8.*
