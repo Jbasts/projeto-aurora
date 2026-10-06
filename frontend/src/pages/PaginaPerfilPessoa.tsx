@@ -5,7 +5,6 @@ import { ErroApi, MENSAGEM_SEM_CONEXAO } from '../api/cliente'
 import { Alerta } from '../components/Alerta'
 import { Avatar } from '../components/Avatar'
 import { Botao } from '../components/Botao'
-import { CampoAreaTexto } from '../components/formulario/CampoAreaTexto'
 import { CampoArquivo } from '../components/formulario/CampoArquivo'
 import { CampoTexto } from '../components/formulario/CampoTexto'
 import { Mapa } from '../components/mapa/MapaSobDemanda'
@@ -15,12 +14,12 @@ import { useUsuarioLogado } from '../contexts/autenticacao'
 import { formatarData, formatarDataHora } from '../features/comum/datas'
 import {
   useEnviarFoto,
-  useInativarPessoa,
   usePessoa,
   useReativarPessoa,
   useRemoverFoto,
 } from '../features/pessoas/api'
 import { erroDaFoto, MAXIMO_FOTOS_ALBUM } from '../features/pessoas/esquemas'
+import { ModalInativar } from '../features/pessoas/ModalInativar'
 import { altFoto, iniciais, nomeCompleto } from '../features/pessoas/nomes'
 import type { Foto, Pessoa } from '../features/pessoas/tipos'
 import { useTituloDocumento } from '../hooks/useTituloDocumento'
@@ -62,7 +61,7 @@ function PerfilPessoa({ pessoa }: { pessoa: Pessoa }) {
       : null,
   )
   const [inativando, setInativando] = useState(false)
-  const reativar = useReativarPessoa(pessoa.id)
+  const reativar = useReativarPessoa()
   const inativa = pessoa.status === 'INATIVA'
 
   return (
@@ -111,7 +110,7 @@ function PerfilPessoa({ pessoa }: { pessoa: Pessoa }) {
                 carregando={reativar.isPending}
                 onClick={async () => {
                   try {
-                    await reativar.mutateAsync()
+                    await reativar.mutateAsync(pessoa.id)
                     setAviso({ tipo: 'sucesso', texto: 'Pessoa reativada.' })
                   } catch (e) {
                     setAviso({ tipo: 'erro', texto: mensagemDeErro(e) })
@@ -438,57 +437,5 @@ function BotaoRemoverFoto({
         Sim, remover
       </Botao>
     </div>
-  )
-}
-
-// --- Inativação (seção 3.7) ---
-
-function ModalInativar({
-  pessoa,
-  aoFechar,
-  aoConcluir,
-}: {
-  pessoa: Pessoa
-  aoFechar: () => void
-  aoConcluir: () => void
-}) {
-  const inativar = useInativarPessoa(pessoa.id)
-  const [motivo, setMotivo] = useState('')
-  const [erro, setErro] = useState<string | null>(null)
-
-  return (
-    <Modal titulo={`Inativar ${nomeCompleto(pessoa)}`} aoFechar={aoFechar}>
-      <p className="text-texto">
-        A pessoa deixa de aparecer no mapa e no mapa de calor, e pessoas usuárias não a encontram
-        mais. O cadastro não é apagado e pode ser reativado depois.
-      </p>
-      <CampoAreaTexto
-        rotulo="Motivo (opcional)"
-        rows={3}
-        maxLength={500}
-        value={motivo}
-        onChange={(e) => setMotivo(e.target.value)}
-      />
-      {erro && <Alerta tipo="erro">{erro}</Alerta>}
-      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        <Botao variante="secundario" onClick={aoFechar}>
-          Cancelar
-        </Botao>
-        <Botao
-          carregando={inativar.isPending}
-          onClick={async () => {
-            setErro(null)
-            try {
-              await inativar.mutateAsync(motivo)
-              aoConcluir()
-            } catch (e) {
-              setErro(mensagemDeErro(e))
-            }
-          }}
-        >
-          Inativar
-        </Botao>
-      </div>
-    </Modal>
   )
 }

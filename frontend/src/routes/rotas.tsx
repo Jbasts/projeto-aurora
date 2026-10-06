@@ -3,6 +3,7 @@ import type { RouteObject } from 'react-router'
 import { LayoutAutenticacao } from '../components/layout/LayoutAutenticacao'
 import { LayoutLogado } from '../components/layout/LayoutLogado'
 import { PaginaAcessoNegado } from '../pages/PaginaAcessoNegado'
+import { PaginaBuscarPessoas } from '../pages/PaginaBuscarPessoas'
 import { PaginaCadastro } from '../pages/PaginaCadastro'
 import { PaginaCadastroEnviado } from '../pages/PaginaCadastroEnviado'
 import { PaginaCadastroPessoa } from '../pages/PaginaCadastroPessoa'
@@ -42,6 +43,7 @@ export const rotas: RouteObject[] = [
         children: [
           { path: '/', element: <PaginaInicio /> },
           { path: '/meu-perfil', element: <PaginaMeuPerfil /> },
+          { path: '/pessoas', element: <PaginaBuscarPessoas /> },
           { path: '/pessoas/:id', element: <PaginaPerfilPessoa /> },
           {
             element: <RotaComPerfil perfis={['ADMIN', 'COLABORADOR']} />,

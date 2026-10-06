@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.erros import ErroApi
 from app.entities import Foto, PerfilUsuario, Pessoa, StatusPessoa, Usuario
 from app.repositories import pessoas as repositorio_pessoas
+from app.repositories.pessoas import OrdemPessoas
 from app.schemas.pessoas import PessoaCriacaoEntrada, PessoaEntrada
 from app.services import auditoria, avistamentos
 from app.services.auditoria import AcaoAuditoria
@@ -130,4 +131,31 @@ def visualizar(sessao: Session, pessoa_id: uuid.UUID, usuario: Usuario, ip: str 
 def sugestoes(sessao: Session, termo: str, usuario: Usuario) -> list[tuple[Pessoa, Foto | None]]:
     return repositorio_pessoas.sugestoes(
         sessao, termo.strip(), somente_ativas=usuario.perfil == PerfilUsuario.PADRAO
+    )
+
+
+def listar(
+    sessao: Session,
+    usuario: Usuario,
+    *,
+    busca: str | None,
+    status: StatusPessoa | None,
+    visto_desde: datetime | None,
+    ordem: OrdemPessoas,
+    pagina: int,
+    tamanho: int,
+) -> tuple[list[tuple[Pessoa, Foto | None]], int]:
+    """Pessoa usuária (PADRAO) só enxerga as ativas: pedir inativas devolve lista vazia."""
+    if usuario.perfil == PerfilUsuario.PADRAO:
+        if status == StatusPessoa.INATIVA:
+            return [], 0
+        status = StatusPessoa.ATIVA
+    return repositorio_pessoas.listar(
+        sessao,
+        busca=(busca or "").strip() or None,
+        status=status,
+        visto_desde=visto_desde,
+        ordem=ordem,
+        pagina=pagina,
+        tamanho=tamanho,
     )

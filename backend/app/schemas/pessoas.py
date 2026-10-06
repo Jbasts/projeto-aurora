@@ -123,3 +123,26 @@ class SugestaoPessoaSaida(BaseModel):
     apelido: str | None
     status: StatusPessoa
     url_miniatura: str | None
+
+
+class PessoaResumoSaida(BaseModel):
+    """Linha da tela Buscar (seção 4.3)."""
+
+    id: uuid.UUID
+    nome: str
+    sobrenome: str
+    apelido: str | None
+    status: StatusPessoa
+    url_miniatura: str | None
+    ultima_vez_visto: datetime | None
+    ultimo_endereco: str | None
+    ultima_latitude: float | None
+    ultima_longitude: float | None
+    cadastrada_por: UsuarioRef | None
+
+
+class PaginaPessoas(BaseModel):
+    itens: list[PessoaResumoSaida]
+    total: int
+    pagina: int
+    tamanho: int

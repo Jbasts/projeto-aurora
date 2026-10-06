@@ -67,3 +67,36 @@ export interface Coordenadas {
   latitude: number
   longitude: number
 }
+
+/** Linha da tela Buscar (seção 4.3). */
+export interface PessoaResumo {
+  id: string
+  nome: string
+  sobrenome: string
+  apelido: string | null
+  status: StatusPessoa
+  url_miniatura: string | null
+  ultima_vez_visto: string | null
+  ultimo_endereco: string | null
+  ultima_latitude: number | null
+  ultima_longitude: number | null
+  cadastrada_por: UsuarioRef | null
+}
+
+export interface PaginaPessoas {
+  itens: PessoaResumo[]
+  total: number
+  pagina: number
+  tamanho: number
+}
+
+export interface FiltrosPessoas {
+  busca: string
+  /** '' = todas (só ADMIN e COLABORADOR escolhem). */
+  status: StatusPessoa | ''
+  /** Visto nos últimos N dias; null = qualquer data. */
+  vistoNosUltimosDias: number | null
+  ordem: 'nome' | 'visto'
+  pagina: number
+  tamanho: number
+}

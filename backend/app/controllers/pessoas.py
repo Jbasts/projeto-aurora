@@ -1,18 +1,22 @@
 import uuid
+from datetime import datetime
 
 from fastapi import UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.core.erros import ErroApi
-from app.entities import Foto, Pessoa, TipoFoto, Usuario
+from app.entities import Foto, Pessoa, StatusPessoa, TipoFoto, Usuario
 from app.repositories import fotos as repositorio_fotos
 from app.repositories import usuarios as repositorio_usuarios
+from app.repositories.pessoas import OrdemPessoas
 from app.schemas.pessoas import (
     FotoSaida,
     InativarPessoaEntrada,
+    PaginaPessoas,
     PessoaCriacaoEntrada,
     PessoaEntrada,
+    PessoaResumoSaida,
     PessoaSaida,
     SugestaoPessoaSaida,
     UsuarioRef,
@@ -27,6 +31,10 @@ def _ref(nomes: dict[uuid.UUID, str], usuario_id: uuid.UUID | None) -> UsuarioRe
     if usuario_id is None or usuario_id not in nomes:
         return None
     return UsuarioRef(id=usuario_id, nome=nomes[usuario_id])
+
+
+def _float(valor) -> float | None:
+    return float(valor) if valor is not None else None
 
 
 def _foto_saida(foto: Foto, nomes: dict[uuid.UUID, str]) -> FotoSaida:
@@ -52,9 +60,6 @@ def _pessoa_saida(sessao: Session, pessoa: Pessoa) -> PessoaSaida:
     ids |= {f.enviada_por_id for f in [*album, *([perfil] if perfil else [])]}
     nomes = repositorio_usuarios.nomes_por_id(sessao, {i for i in ids if i is not None})
 
-    def _float(valor) -> float | None:
-        return float(valor) if valor is not None else None
-
     return PessoaSaida(
         **{campo: getattr(pessoa, campo) for campo in servico_pessoas.CAMPOS_EDITAVEIS},
         id=pessoa.id,
@@ -72,6 +77,50 @@ def _pessoa_saida(sessao: Session, pessoa: Pessoa) -> PessoaSaida:
         ultimo_endereco=pessoa.ultimo_endereco,
         criado_em=pessoa.criado_em,
         atualizado_em=pessoa.atualizado_em,
+    )
+
+
+def listar(
+    sessao: Session,
+    usuario: Usuario,
+    busca: str | None,
+    status: StatusPessoa | None,
+    visto_desde: datetime | None,
+    ordem: OrdemPessoas,
+    pagina: int,
+    tamanho: int,
+) -> PaginaPessoas:
+    linhas, total = servico_pessoas.listar(
+        sessao,
+        usuario,
+        busca=busca,
+        status=status,
+        visto_desde=visto_desde,
+        ordem=ordem,
+        pagina=pagina,
+        tamanho=tamanho,
+    )
+    nomes = repositorio_usuarios.nomes_por_id(sessao, {p.cadastrada_por_id for p, _ in linhas})
+    return PaginaPessoas(
+        itens=[
+            PessoaResumoSaida(
+                id=pessoa.id,
+                nome=pessoa.nome,
+                sobrenome=pessoa.sobrenome,
+                apelido=pessoa.apelido,
+                status=pessoa.status,
+                url_miniatura=servico_arquivos.url_assinada(foto.id, "miniatura") if foto else None,
+                ultima_vez_visto=pessoa.ultima_vez_visto,
+                ultimo_endereco=pessoa.ultimo_endereco,
+                ultima_latitude=_float(pessoa.ultima_latitude),
+                ultima_longitude=_float(pessoa.ultima_longitude),
+                cadastrada_por=_ref(nomes, pessoa.cadastrada_por_id),
+            )
+            for pessoa, foto in linhas
+        ],
+        total=total,
+        pagina=pagina,
+        tamanho=tamanho,
     )
 
 

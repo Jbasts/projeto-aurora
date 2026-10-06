@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile, status
@@ -8,10 +9,13 @@ from sqlalchemy.orm import Session
 from app.controllers import pessoas as controller
 from app.core.permissoes import exigir_perfil, ip_da_requisicao, obter_usuario_atual
 from app.db.sessao import obter_sessao
-from app.entities import PerfilUsuario, TipoFoto, Usuario
+from app.entities import PerfilUsuario, StatusPessoa, TipoFoto, Usuario
+from app.repositories.pessoas import OrdemPessoas
+from app.schemas.comum import TAMANHO_PAGINA_MAXIMO, TAMANHO_PAGINA_PADRAO
 from app.schemas.pessoas import (
     FotoSaida,
     InativarPessoaEntrada,
+    PaginaPessoas,
     PessoaCriacaoEntrada,
     PessoaEntrada,
     PessoaSaida,
@@ -26,6 +30,21 @@ Gestor = Annotated[Usuario, Depends(exigir_perfil(PerfilUsuario.ADMIN, PerfilUsu
 Legenda = Annotated[str | None, Form(max_length=255)]
 
 router = APIRouter(prefix="/pessoas", tags=["pessoas"])
+
+
+@router.get("", response_model=PaginaPessoas)
+def listar(
+    usuario: UsuarioLogado,
+    sessao: SessaoBanco,
+    busca: Annotated[str | None, Query(max_length=100)] = None,
+    status: StatusPessoa | None = None,
+    visto_desde: datetime | None = None,
+    ordem: OrdemPessoas = "nome",
+    pagina: Annotated[int, Query(ge=1)] = 1,
+    tamanho: Annotated[int, Query(ge=1, le=TAMANHO_PAGINA_MAXIMO)] = TAMANHO_PAGINA_PADRAO,
+) -> PaginaPessoas:
+    """Busca (seção 4.3). Sem status, lista ativas e inativas (PADRAO: só ativas)."""
+    return controller.listar(sessao, usuario, busca, status, visto_desde, ordem, pagina, tamanho)
 
 
 @router.get("/sugestoes", response_model=list[SugestaoPessoaSaida])
