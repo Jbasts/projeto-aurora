@@ -11,7 +11,7 @@ import { TituloPagina } from '../components/TituloPagina'
 import { useAutenticacao, useUsuarioLogado } from '../contexts/autenticacao'
 import type { StatusUsuario } from '../features/auth/tipos'
 import { useAlterarUsuario, useContagemPendentes, useUsuarios } from '../features/usuarios/api'
-import { formatarData } from '../features/usuarios/formatacao'
+import { formatarData } from '../features/comum/datas'
 import {
   PERFIS,
   ROTULOS_PERFIL,

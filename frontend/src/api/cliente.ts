@@ -50,15 +50,17 @@ interface OpcoesRequisicao {
 }
 
 async function executar(caminho: string, metodo: string, corpo: unknown): Promise<Response> {
+  // FormData (envio de fotos): o navegador define o Content-Type com o boundary.
+  const ehFormulario = corpo instanceof FormData
   const cabecalhos: Record<string, string> = { Accept: 'application/json' }
-  if (corpo !== undefined) cabecalhos['Content-Type'] = 'application/json'
+  if (corpo !== undefined && !ehFormulario) cabecalhos['Content-Type'] = 'application/json'
   if (accessToken) cabecalhos.Authorization = `Bearer ${accessToken}`
 
   try {
     return await fetch(`${BASE_API}${caminho}`, {
       method: metodo,
       headers: cabecalhos,
-      body: corpo === undefined ? undefined : JSON.stringify(corpo),
+      body: corpo === undefined ? undefined : ehFormulario ? corpo : JSON.stringify(corpo),
       credentials: 'same-origin',
     })
   } catch {

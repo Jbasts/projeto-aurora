@@ -2,12 +2,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
 
-from app.core.config import obter_configuracoes
+from app.core.config import PREFIXO_API, obter_configuracoes
 from app.core.erros import registrar_tratadores_de_erro
 from app.core.limite import limiter, tratar_limite_excedido
-from app.routes import autenticacao, saude, usuarios
-
-PREFIXO_API = "/api/v1"
+from app.routes import autenticacao, pessoas, saude, usuarios
 
 
 def criar_app() -> FastAPI:
@@ -29,6 +27,8 @@ def criar_app() -> FastAPI:
     app.include_router(autenticacao.router, prefix=PREFIXO_API)
     app.include_router(usuarios.router, prefix=PREFIXO_API)
     app.include_router(usuarios.router_me, prefix=PREFIXO_API)
+    app.include_router(pessoas.router, prefix=PREFIXO_API)
+    app.include_router(pessoas.router_arquivos, prefix=PREFIXO_API)
     return app
 
 

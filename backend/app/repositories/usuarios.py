@@ -81,3 +81,9 @@ def travar_admins_ativos(sessao: Session) -> list[uuid.UUID]:
             .with_for_update()
         )
     )
+
+
+def nomes_por_id(sessao: Session, ids: set[uuid.UUID]) -> dict[uuid.UUID, str]:
+    if not ids:
+        return {}
+    return dict(sessao.execute(select(Usuario.id, Usuario.nome).where(Usuario.id.in_(ids))).all())

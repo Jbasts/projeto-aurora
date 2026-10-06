@@ -5,11 +5,14 @@ import { LayoutLogado } from '../components/layout/LayoutLogado'
 import { PaginaAcessoNegado } from '../pages/PaginaAcessoNegado'
 import { PaginaCadastro } from '../pages/PaginaCadastro'
 import { PaginaCadastroEnviado } from '../pages/PaginaCadastroEnviado'
+import { PaginaCadastroPessoa } from '../pages/PaginaCadastroPessoa'
+import { PaginaEditarPessoa } from '../pages/PaginaEditarPessoa'
 import { PaginaInicio } from '../pages/PaginaInicio'
 import { PaginaLinkExpirado } from '../pages/PaginaLinkExpirado'
 import { PaginaLogin } from '../pages/PaginaLogin'
 import { PaginaMeuPerfil } from '../pages/PaginaMeuPerfil'
 import { PaginaNaoEncontrada } from '../pages/PaginaNaoEncontrada'
+import { PaginaPerfilPessoa } from '../pages/PaginaPerfilPessoa'
 import { PaginaRecuperarSenha } from '../pages/PaginaRecuperarSenha'
 import { PaginaRedefinirSenha } from '../pages/PaginaRedefinirSenha'
 import { PaginaUsuarios } from '../pages/PaginaUsuarios'
@@ -39,6 +42,14 @@ export const rotas: RouteObject[] = [
         children: [
           { path: '/', element: <PaginaInicio /> },
           { path: '/meu-perfil', element: <PaginaMeuPerfil /> },
+          { path: '/pessoas/:id', element: <PaginaPerfilPessoa /> },
+          {
+            element: <RotaComPerfil perfis={['ADMIN', 'COLABORADOR']} />,
+            children: [
+              { path: '/pessoas/nova', element: <PaginaCadastroPessoa /> },
+              { path: '/pessoas/:id/editar', element: <PaginaEditarPessoa /> },
+            ],
+          },
           {
             element: <RotaComPerfil perfis={['ADMIN']} />,
             children: [{ path: '/usuarios', element: <PaginaUsuarios /> }],

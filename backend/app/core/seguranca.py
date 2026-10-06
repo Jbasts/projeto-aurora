@@ -1,4 +1,5 @@
 import hashlib
+import hmac
 import re
 import secrets
 import uuid
@@ -99,3 +100,23 @@ def gerar_token_redefinicao() -> tuple[str, str]:
 
 def hash_token_redefinicao(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
+
+
+# --- URL assinada de arquivos (seção 3.8) ---
+
+
+def assinatura_arquivo(arquivo_id: str, variante: str, expira: int) -> str:
+    """HMAC-SHA256 de id, variante e expiração. Sem o segredo, a URL não pode ser forjada."""
+    mensagem = f"{arquivo_id}:{variante}:{expira}".encode()
+    return hmac.new(
+        obter_configuracoes().ARQUIVOS_URL_SEGREDO.encode(), mensagem, hashlib.sha256
+    ).hexdigest()
+
+
+def assinatura_arquivo_valida(
+    arquivo_id: str, variante: str, expira: int, assinatura: str, agora: datetime | None = None
+) -> bool:
+    agora = agora or datetime.now(UTC)
+    if expira < agora.timestamp():
+        return False
+    return hmac.compare_digest(assinatura_arquivo(arquivo_id, variante, expira), assinatura)
