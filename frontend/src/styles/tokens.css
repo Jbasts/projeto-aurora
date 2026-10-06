@@ -12,7 +12,8 @@
   --cor-borda-campo: #5b8f84;
   --cor-divisor: #cfe3dd;
   --cor-erro: #b3261e;
-  --cor-sobreposicao: rgb(30 127 107 / 0.55); /* véu verde sobre imagens */
+  --cor-sobreposicao: rgb(18 84 71 / 0.6); /* véu verde sobre imagens */
+  --cor-sobre-imagem: #ffffff; /* texto e logo sobre o véu, nos dois temas */
 
   --fonte-base: 'Montserrat', system-ui, sans-serif;
 

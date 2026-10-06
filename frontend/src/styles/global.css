@@ -17,6 +17,7 @@
   --color-divisor: var(--cor-divisor);
   --color-erro: var(--cor-erro);
   --color-sobreposicao: var(--cor-sobreposicao);
+  --color-sobre-imagem: var(--cor-sobre-imagem);
 
   --font-sans: var(--fonte-base);
 
