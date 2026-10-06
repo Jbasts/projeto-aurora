@@ -12,6 +12,8 @@ export interface Autenticacao {
   /** Lança ErroApi em caso de falha (credenciais, bloqueio, conta pendente etc.). */
   entrar: (email: string, senha: string) => Promise<Usuario>
   sair: () => Promise<void>
+  /** Atualiza os dados da pessoa logada (ex.: depois de editar Meu perfil). */
+  atualizarUsuario: (usuario: Usuario) => void
 }
 
 export const AutenticacaoContext = createContext<Autenticacao | null>(null)

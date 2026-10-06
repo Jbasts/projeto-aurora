@@ -8,12 +8,14 @@ import { PaginaCadastroEnviado } from '../pages/PaginaCadastroEnviado'
 import { PaginaInicio } from '../pages/PaginaInicio'
 import { PaginaLinkExpirado } from '../pages/PaginaLinkExpirado'
 import { PaginaLogin } from '../pages/PaginaLogin'
+import { PaginaMeuPerfil } from '../pages/PaginaMeuPerfil'
 import { PaginaNaoEncontrada } from '../pages/PaginaNaoEncontrada'
 import { PaginaRecuperarSenha } from '../pages/PaginaRecuperarSenha'
 import { PaginaRedefinirSenha } from '../pages/PaginaRedefinirSenha'
-import { RotaProtegida, RotaSomenteAnonima } from './protecao'
+import { PaginaUsuarios } from '../pages/PaginaUsuarios'
+import { RotaComPerfil, RotaProtegida, RotaSomenteAnonima } from './protecao'
 
-// Rotas da seção 4.2. Rotas por perfil usam <RotaComPerfil perfis={[...]} /> (a partir da Fase 3).
+// Rotas da seção 4.2. Rotas por perfil usam <RotaComPerfil perfis={[...]} />.
 export const rotas: RouteObject[] = [
   {
     element: <LayoutAutenticacao />,
@@ -34,7 +36,14 @@ export const rotas: RouteObject[] = [
     children: [
       {
         element: <LayoutLogado />,
-        children: [{ path: '/', element: <PaginaInicio /> }],
+        children: [
+          { path: '/', element: <PaginaInicio /> },
+          { path: '/meu-perfil', element: <PaginaMeuPerfil /> },
+          {
+            element: <RotaComPerfil perfis={['ADMIN']} />,
+            children: [{ path: '/usuarios', element: <PaginaUsuarios /> }],
+          },
+        ],
       },
       { path: '/acesso-negado', element: <PaginaAcessoNegado /> },
     ],

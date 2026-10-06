@@ -17,12 +17,12 @@ const email = z
   .min(1, 'Informe seu email.')
   .pipe(z.email('Informe um email válido.'))
 
-const senhaForte = z
+export const senhaForte = z
   .string()
   .max(128, 'Use no máximo 128 caracteres.')
   .refine((s) => REQUISITOS_SENHA.every((r) => r.atende(s)), MENSAGEM_REQUISITOS_SENHA)
 
-const telefone = z
+export const telefone = z
   .string()
   .trim()
   .refine((t) => {
@@ -30,7 +30,7 @@ const telefone = z
     return digitos === 0 || digitos === 10 || digitos === 11
   }, 'Informe o telefone com DDD, no formato (00) 00000-0000.')
 
-const MENSAGEM_SENHAS_DIFERENTES = 'As senhas não são iguais.'
+export const MENSAGEM_SENHAS_DIFERENTES = 'As senhas não são iguais.'
 
 export const esquemaLogin = z.object({
   email: z.string().trim().min(1, 'Informe seu email.'),

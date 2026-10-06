@@ -7,7 +7,7 @@ import {
   renovarSessao,
   requisitar,
 } from '../api/cliente'
-import type { SessaoResposta } from '../features/auth/tipos'
+import type { SessaoResposta, Usuario } from '../features/auth/tipos'
 import { AutenticacaoContext, type EstadoAutenticacao } from './autenticacao'
 
 export function AutenticacaoProvider({ children }: { children: ReactNode }) {
@@ -63,7 +63,14 @@ export function AutenticacaoProvider({ children }: { children: ReactNode }) {
     }
   }, [encerrarLocalmente])
 
-  const valor = useMemo(() => ({ estado, entrar, sair }), [estado, entrar, sair])
+  const atualizarUsuario = useCallback((usuario: Usuario) => {
+    setEstado({ situacao: 'autenticada', usuario })
+  }, [])
+
+  const valor = useMemo(
+    () => ({ estado, entrar, sair, atualizarUsuario }),
+    [estado, entrar, sair, atualizarUsuario],
+  )
 
   return <AutenticacaoContext.Provider value={valor}>{children}</AutenticacaoContext.Provider>
 }

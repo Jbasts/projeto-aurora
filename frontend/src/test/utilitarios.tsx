@@ -20,6 +20,7 @@ export interface ChamadaApi {
   chave: string
   corpo: unknown
   cabecalhos: Record<string, string>
+  url: URL
 }
 
 /**
@@ -35,7 +36,12 @@ export function mockarApi(rotasApi: Record<string, Manipulador>) {
       const url = new URL(entrada, 'http://localhost')
       const chave = `${init.method ?? 'GET'} ${url.pathname.replace('/api/v1', '')}`
       const corpo = typeof init.body === 'string' ? JSON.parse(init.body) : undefined
-      chamadas.push({ chave, corpo, cabecalhos: (init.headers ?? {}) as Record<string, string> })
+      chamadas.push({
+        chave,
+        corpo,
+        cabecalhos: (init.headers ?? {}) as Record<string, string>,
+        url,
+      })
 
       const manipulador = rotasApi[chave]
       const { status = 200, corpo: resposta = {} } = !manipulador

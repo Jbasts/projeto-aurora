@@ -9,9 +9,11 @@ import { itensDoPerfil } from './navegacao'
 interface CabecalhoProps {
   usuario: UsuarioResumo
   aoSair: () => void
+  /** Contador ao lado de um item do menu, pela rota (ex.: pendentes em /usuarios). */
+  contadores?: Partial<Record<string, number>>
 }
 
-export function Cabecalho({ usuario, aoSair }: CabecalhoProps) {
+export function Cabecalho({ usuario, aoSair, contadores = {} }: CabecalhoProps) {
   const [menuAberto, setMenuAberto] = useState(false)
   const itens = itensDoPerfil(usuario.perfil)
 
@@ -63,6 +65,7 @@ export function Cabecalho({ usuario, aoSair }: CabecalhoProps) {
                     }
                   >
                     {item.rotulo}
+                    <Contador valor={contadores[item.para]} />
                   </NavLink>
                 </li>
               ))}
@@ -74,5 +77,15 @@ export function Cabecalho({ usuario, aoSair }: CabecalhoProps) {
         </div>
       </div>
     </header>
+  )
+}
+
+function Contador({ valor }: { valor?: number }) {
+  if (!valor) return null
+  return (
+    <span className="ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full bg-primaria px-1.5 text-xs font-bold text-sobre-primaria no-underline">
+      <span aria-hidden="true">{valor}</span>
+      <span className="sr-only">{`, ${valor} ${valor === 1 ? 'pendente' : 'pendentes'}`}</span>
+    </span>
   )
 }

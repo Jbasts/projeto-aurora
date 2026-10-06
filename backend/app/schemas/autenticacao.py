@@ -30,7 +30,7 @@ class SessaoSaida(BaseModel):
     usuario: UsuarioSaida
 
 
-class _ComConfirmacaoDeSenha(BaseModel):
+class ComConfirmacaoDeSenha(BaseModel):
     senha: SenhaForte
     confirmar_senha: str = Field(max_length=128)
 
@@ -42,20 +42,20 @@ class _ComConfirmacaoDeSenha(BaseModel):
         return valor
 
 
-class CadastroEntrada(_ComConfirmacaoDeSenha):
+class CadastroEntrada(ComConfirmacaoDeSenha):
     """Cadastro aberto. Não existe campo de perfil: a conta nasce PADRAO e PENDENTE."""
 
     nome: TextoAparado = Field(min_length=2, max_length=150)
     email: EmailValido
     telefone: Telefone = None
-    # senha e confirmar_senha vêm de _ComConfirmacaoDeSenha
+    # senha e confirmar_senha vêm de ComConfirmacaoDeSenha
 
 
 class EmailEntrada(BaseModel):
     email: EmailValido
 
 
-class RedefinirSenhaEntrada(_ComConfirmacaoDeSenha):
+class RedefinirSenhaEntrada(ComConfirmacaoDeSenha):
     token: str = Field(max_length=128)
 
 

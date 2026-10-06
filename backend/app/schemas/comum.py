@@ -7,6 +7,10 @@ from pydantic import AfterValidator, BeforeValidator, Field
 from app.core.config import obter_configuracoes
 from app.core.seguranca import normalizar_email, senha_atende_requisitos
 
+# Paginação de todas as listagens: 5 por página, ajustável até 100.
+TAMANHO_PAGINA_PADRAO = 5
+TAMANHO_PAGINA_MAXIMO = 100
+
 MENSAGEM_REQUISITOS_SENHA = (
     "A senha precisa ter pelo menos 8 caracteres, com pelo menos uma letra e um número."
 )

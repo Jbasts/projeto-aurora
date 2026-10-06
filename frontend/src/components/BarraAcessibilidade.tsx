@@ -17,7 +17,7 @@ export function BarraAcessibilidade() {
   } = usePreferencias()
 
   return (
-    <div className="bg-fundo-topo">
+    <div className="sticky top-0 z-40 border-b border-divisor bg-fundo-topo">
       <div className="mx-auto flex max-w-conteudo flex-wrap items-center justify-between gap-2 px-4 py-1">
         <div
           role="group"
