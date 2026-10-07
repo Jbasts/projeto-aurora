@@ -17,6 +17,7 @@ export const ITENS_NAVEGACAO: ItemNavegacao[] = [
   { rotulo: 'Mapa', para: '/mapa', perfis: TODOS },
   { rotulo: 'Mapa de calor', para: '/mapa-de-calor', perfis: TODOS },
   { rotulo: 'Usuários', para: '/usuarios', perfis: ['ADMIN'] },
+  { rotulo: 'Auditoria', para: '/auditoria', perfis: ['ADMIN'] },
 ]
 
 export function itensDoPerfil(perfil: Perfil): ItemNavegacao[] {

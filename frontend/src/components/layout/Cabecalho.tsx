@@ -26,7 +26,7 @@ export function Cabecalho({ usuario, aoSair, contadores = {} }: CabecalhoProps) 
 
         <button
           type="button"
-          className="alvo-toque inline-flex items-center justify-center rounded-botao text-primaria md:hidden"
+          className="alvo-toque inline-flex items-center justify-center rounded-botao text-primaria lg:hidden"
           aria-expanded={menuAberto}
           aria-controls="menu-principal"
           onClick={() => setMenuAberto((valor) => !valor)}
@@ -46,10 +46,10 @@ export function Cabecalho({ usuario, aoSair, contadores = {} }: CabecalhoProps) 
 
         <div
           id="menu-principal"
-          className={`${menuAberto ? 'flex' : 'hidden'} w-full flex-col gap-2 md:flex md:w-auto md:flex-row md:items-center md:gap-6`}
+          className={`${menuAberto ? 'flex' : 'hidden'} w-full flex-col gap-2 lg:flex lg:w-auto lg:flex-row lg:items-center lg:gap-6`}
         >
           <nav aria-label="Navegação principal">
-            <ul className="flex flex-col md:flex-row md:items-center md:gap-1">
+            <ul className="flex flex-col lg:flex-row lg:items-center lg:gap-1">
               {itens.map((item) => (
                 <li key={item.para}>
                   <NavLink
@@ -71,7 +71,7 @@ export function Cabecalho({ usuario, aoSair, contadores = {} }: CabecalhoProps) 
               ))}
             </ul>
           </nav>
-          <div className="border-t border-divisor pt-2 md:border-0 md:pt-0">
+          <div className="border-t border-divisor pt-2 lg:border-0 lg:pt-0">
             <MenuPessoa usuario={usuario} aoSair={aoSair} />
           </div>
         </div>

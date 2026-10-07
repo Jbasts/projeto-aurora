@@ -32,12 +32,14 @@ describe('Cabecalho', () => {
       'Mapa',
       'Mapa de calor',
       'Usuários',
+      'Auditoria',
     ])
   })
 
-  it('esconde Usuários para pessoa colaboradora', () => {
+  it('esconde Usuários e Auditoria para pessoa colaboradora', () => {
     const itens = rotulos(renderizar('COLABORADOR'))
     expect(itens).not.toContain('Usuários')
+    expect(itens).not.toContain('Auditoria')
     expect(itens).toContain('Cadastrar')
   })
 

@@ -15,6 +15,7 @@
   --color-texto-suave: var(--cor-texto-suave);
   --color-borda-campo: var(--cor-borda-campo);
   --color-divisor: var(--cor-divisor);
+  --color-linha: var(--cor-linha);
   --color-erro: var(--cor-erro);
   --color-sobreposicao: var(--cor-sobreposicao);
 

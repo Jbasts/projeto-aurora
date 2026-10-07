@@ -23,6 +23,8 @@ Os protótipos estão em `docs/telas.pdf` (uma tela por página; identifique cad
 - Frontend: `cd frontend && npm run dev` (http://localhost:5173; `/api` é redirecionado para o backend na porta 8000)
 - Testes frontend: `cd frontend && npm test`
 - Lint e tipos do frontend: `cd frontend && npm run lint && npm run typecheck`
+- Build e PWA: `cd frontend && npm run build && npm run preview` (o service worker só existe no build; a porta padrão 4173 pode estar ocupada por outro projeto, use `npm run preview -- --port 4180`)
+- Ícones do PWA: `cd frontend && npm run gerar-icones` (a partir de `public/favicon.svg`)
 
 ## Regras de trabalho
 - Trabalhe **uma fase por vez** (seção "Fases" da especificação). Não implemente nada fora da fase pedida.

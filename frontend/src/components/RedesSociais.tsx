@@ -56,7 +56,18 @@ const REDES: { nome: string; url: string; icone: ReactNode }[] = [
   },
 ]
 
-export function RedesSociais({ className = '' }: { className?: string }) {
+const CORES = {
+  primaria: 'text-primaria hover:text-primaria-hover', // barra superior
+  texto: 'text-texto hover:text-primaria', // rodapé (ícones escuros, como no protótipo)
+}
+
+export function RedesSociais({
+  className = '',
+  cor = 'primaria',
+}: {
+  className?: string
+  cor?: keyof typeof CORES
+}) {
   return (
     <ul className={`flex items-center ${className}`} aria-label="Redes sociais">
       {REDES.map((rede) => (
@@ -64,7 +75,7 @@ export function RedesSociais({ className = '' }: { className?: string }) {
           <a
             href={rede.url}
             aria-label={`${rede.nome} do Projeto Aurora`}
-            className="alvo-toque inline-flex items-center justify-center rounded-campo text-primaria hover:text-primaria-hover"
+            className={`alvo-toque inline-flex items-center justify-center rounded-campo ${CORES[cor]}`}
           >
             <svg viewBox="0 0 24 24" className="size-5" aria-hidden="true" focusable="false">
               {rede.icone}

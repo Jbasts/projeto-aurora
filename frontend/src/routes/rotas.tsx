@@ -2,7 +2,9 @@ import type { RouteObject } from 'react-router'
 
 import { LayoutAutenticacao } from '../components/layout/LayoutAutenticacao'
 import { LayoutLogado } from '../components/layout/LayoutLogado'
+import { LayoutPublico } from '../components/layout/LayoutPublico'
 import { PaginaAcessoNegado } from '../pages/PaginaAcessoNegado'
+import { PaginaAuditoria } from '../pages/PaginaAuditoria'
 import { PaginaBuscarPessoas } from '../pages/PaginaBuscarPessoas'
 import { PaginaCadastro } from '../pages/PaginaCadastro'
 import { PaginaCadastroEnviado } from '../pages/PaginaCadastroEnviado'
@@ -16,6 +18,7 @@ import { PaginaMapaSobDemanda } from '../pages/PaginaMapaSobDemanda'
 import { PaginaMeuPerfil } from '../pages/PaginaMeuPerfil'
 import { PaginaNaoEncontrada } from '../pages/PaginaNaoEncontrada'
 import { PaginaPerfilPessoa } from '../pages/PaginaPerfilPessoa'
+import { PaginaPrivacidade } from '../pages/PaginaPrivacidade'
 import { PaginaRecuperarSenha } from '../pages/PaginaRecuperarSenha'
 import { PaginaRedefinirSenha } from '../pages/PaginaRedefinirSenha'
 import { PaginaUsuarios } from '../pages/PaginaUsuarios'
@@ -38,6 +41,10 @@ export const rotas: RouteObject[] = [
   },
   { path: '/link-expirado', element: <PaginaLinkExpirado /> },
   {
+    element: <LayoutPublico />,
+    children: [{ path: '/privacidade', element: <PaginaPrivacidade /> }],
+  },
+  {
     element: <RotaProtegida />,
     children: [
       {
@@ -58,7 +65,10 @@ export const rotas: RouteObject[] = [
           },
           {
             element: <RotaComPerfil perfis={['ADMIN']} />,
-            children: [{ path: '/usuarios', element: <PaginaUsuarios /> }],
+            children: [
+              { path: '/usuarios', element: <PaginaUsuarios /> },
+              { path: '/auditoria', element: <PaginaAuditoria /> },
+            ],
           },
         ],
       },

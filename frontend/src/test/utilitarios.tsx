@@ -9,7 +9,7 @@ import type { SessaoResposta, Usuario } from '../features/auth/tipos'
 import type { Perfil } from '../features/usuarios/perfis'
 import { rotas } from '../routes/rotas'
 
-interface RespostaFalsa {
+export interface RespostaFalsa {
   status?: number
   corpo?: unknown
 }

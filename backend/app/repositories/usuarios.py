@@ -15,6 +15,12 @@ def buscar_por_id_para_alterar(sessao: Session, usuario_id: uuid.UUID) -> Usuari
     return sessao.get(Usuario, usuario_id, with_for_update=True, populate_existing=True)
 
 
+def buscar_varios(sessao: Session, ids: set[uuid.UUID]) -> dict[uuid.UUID, Usuario]:
+    if not ids:
+        return {}
+    return {u.id: u for u in sessao.scalars(select(Usuario).where(Usuario.id.in_(ids)))}
+
+
 def buscar_por_email(sessao: Session, email: str) -> Usuario | None:
     # email é citext: a comparação já ignora maiúsculas.
     return sessao.scalar(select(Usuario).where(Usuario.email == email))

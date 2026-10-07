@@ -65,7 +65,9 @@ describe('rotas protegidas', () => {
   it('pessoa logada que abre /login vai para o início', async () => {
     mockarApi({ 'POST /auth/refresh': { corpo: sessaoTeste() } })
     const { router } = renderizarApp('/login')
-    expect(await screen.findByRole('banner')).toBeInTheDocument()
+    expect(
+      await screen.findByRole('navigation', { name: 'Navegação principal' }),
+    ).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/')
   })
 

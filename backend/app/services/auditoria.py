@@ -1,9 +1,12 @@
 import uuid
+from datetime import datetime
 from typing import Any
 
+from fastapi import status
 from sqlalchemy.orm import Session
 
-from app.entities import LogAuditoria
+from app.core.erros import ErroApi
+from app.entities import LogAuditoria, Usuario
 from app.repositories import auditoria as repositorio
 
 
@@ -52,4 +55,35 @@ def registrar(
             detalhes=detalhes,
             ip=ip,
         ),
+    )
+
+
+ACOES = tuple(valor for nome, valor in vars(AcaoAuditoria).items() if nome.isupper())
+
+
+def listar(
+    sessao: Session,
+    *,
+    usuario_id: uuid.UUID | None,
+    acao: str | None,
+    de: datetime | None,
+    ate: datetime | None,
+    pagina: int,
+    tamanho: int,
+) -> tuple[list[tuple[LogAuditoria, Usuario | None]], int]:
+    """Consulta da tela Logs de auditoria (somente ADMIN), do mais recente para o mais antigo."""
+    if de is not None and ate is not None and de > ate:
+        raise ErroApi(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "VALIDACAO",
+            "A data inicial do período não pode ser depois da data final.",
+        )
+    return repositorio.listar(
+        sessao,
+        usuario_id=usuario_id,
+        acao=acao,
+        de=de,
+        ate=ate,
+        pagina=pagina,
+        tamanho=tamanho,
     )

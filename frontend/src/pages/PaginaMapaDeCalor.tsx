@@ -9,6 +9,7 @@ import type { PontoCalor } from '../components/mapa/CamadaCalor'
 import { LegendaCalor } from '../components/mapa/LegendaCalor'
 import { MapaCalor } from '../components/mapa/MapaSobDemanda'
 import { TituloPagina } from '../components/TituloPagina'
+import { limiteDoDia, paraCampoData } from '../features/comum/datas'
 import { useCalor } from '../features/mapa/api'
 import { BuscaPessoa } from '../features/mapa/BuscaPessoa'
 import { iniciais, nomeCompleto } from '../features/pessoas/nomes'
@@ -23,20 +24,6 @@ const OPCOES_PERIODO: { valor: Periodo; rotulo: string }[] = [
   { valor: '90', rotulo: 'Últimos 90 dias' },
   { valor: 'personalizado', rotulo: 'Intervalo personalizado' },
 ]
-
-/** "AAAA-MM-DD" no horário do aparelho (valor de <input type="date">). */
-function paraCampoData(data: Date): string {
-  const local = new Date(data.getTime() - data.getTimezoneOffset() * 60_000)
-  return local.toISOString().slice(0, 10)
-}
-
-/** Início (00:00) ou fim (23:59:59.999) do dia de um <input type="date">, em ISO. */
-function limiteDoDia(valor: string, fim: boolean): string | null {
-  const [ano, mes, dia] = valor.split('-').map(Number)
-  if (!ano || !mes || !dia) return null
-  const data = fim ? new Date(ano, mes - 1, dia, 23, 59, 59, 999) : new Date(ano, mes - 1, dia)
-  return data.toISOString()
-}
 
 // Referência estável: a camada de calor só é refeita quando os pontos mudam.
 const SEM_PONTOS: PontoCalor[] = []

@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 
 import { BarraAcessibilidade } from '../components/BarraAcessibilidade'
@@ -8,9 +9,11 @@ import { PreferenciasProvider } from './PreferenciasProvider'
 
 function renderizarBarra() {
   render(
-    <PreferenciasProvider>
-      <BarraAcessibilidade />
-    </PreferenciasProvider>,
+    <MemoryRouter>
+      <PreferenciasProvider>
+        <BarraAcessibilidade />
+      </PreferenciasProvider>
+    </MemoryRouter>,
   )
   return {
     diminuir: screen.getByRole('button', { name: 'Diminuir tamanho do texto' }),
