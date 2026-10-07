@@ -1,16 +1,23 @@
+import uuid
+from datetime import datetime
+
 from sqlalchemy.orm import Session
 
 from app.entities import Usuario
 from app.repositories import pessoas as repositorio_pessoas
 from app.schemas.mapa import (
     AvistamentoEntrada,
+    AvistamentoHistoricoSaida,
     AvistamentoSaida,
     EnderecoSaida,
     MarcadorSaida,
+    PaginaAvistamentos,
+    PontoCalor,
     RegistradorRef,
 )
 from app.services import arquivos as servico_arquivos
 from app.services import avistamentos as servico_avistamentos
+from app.services import pessoas as servico_pessoas
 from app.services.geocodificacao import Geocodificador
 
 
@@ -75,3 +82,39 @@ def registrar_avistamento(
 
 def endereco(latitude: float, longitude: float, geocodificador: Geocodificador) -> EnderecoSaida:
     return EnderecoSaida(endereco=geocodificador.endereco(latitude, longitude))
+
+
+def historico(
+    sessao: Session, pessoa_id: uuid.UUID, usuario: Usuario, pagina: int, tamanho: int
+) -> PaginaAvistamentos:
+    pessoa = servico_pessoas.obter_visivel(sessao, pessoa_id, usuario)
+    linhas, total = servico_avistamentos.historico(sessao, pessoa, pagina=pagina, tamanho=tamanho)
+    return PaginaAvistamentos(
+        itens=[
+            AvistamentoHistoricoSaida(
+                id=avistamento.id,
+                latitude=float(avistamento.latitude),
+                longitude=float(avistamento.longitude),
+                endereco=avistamento.endereco,
+                visto_em=avistamento.visto_em,
+                observacao=avistamento.observacao,
+                registrado_por=_registrador(registrador),
+                criado_em=avistamento.criado_em,
+            )
+            for avistamento, registrador in linhas
+        ],
+        total=total,
+        pagina=pagina,
+        tamanho=tamanho,
+    )
+
+
+def calor(
+    sessao: Session,
+    usuario: Usuario,
+    pessoa_id: uuid.UUID | None,
+    de: datetime | None,
+    ate: datetime | None,
+) -> list[PontoCalor]:
+    pessoa = servico_pessoas.obter_visivel(sessao, pessoa_id, usuario) if pessoa_id else None
+    return servico_avistamentos.calor(sessao, pessoa=pessoa, de=de, ate=ate)

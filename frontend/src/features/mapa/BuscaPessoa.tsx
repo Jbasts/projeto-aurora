@@ -9,6 +9,7 @@ import type { SugestaoPessoa } from '../pessoas/tipos'
 
 interface BuscaPessoaProps {
   aoEscolher: (pessoa: SugestaoPessoa) => void
+  rotulo?: string
   /** Chamado com o texto digitado quando não há resultado (atalho "Cadastrar nova pessoa"). */
   semResultado?: (termo: string) => React.ReactNode
 }
@@ -17,7 +18,11 @@ interface BuscaPessoaProps {
  * Autocomplete por nome, sobrenome ou apelido, a partir de 2 letras, sem diferenciar acentos
  * (seção 3.9). Padrão combobox: setas navegam, Enter escolhe, Esc fecha.
  */
-export function BuscaPessoa({ aoEscolher, semResultado }: BuscaPessoaProps) {
+export function BuscaPessoa({
+  aoEscolher,
+  rotulo = 'Quem foi vista? (nome, sobrenome ou apelido)',
+  semResultado,
+}: BuscaPessoaProps) {
   const id = useId()
   const [termo, setTermo] = useState('')
   const [aberta, setAberta] = useState(false)
@@ -25,7 +30,7 @@ export function BuscaPessoa({ aoEscolher, semResultado }: BuscaPessoaProps) {
   const termoAtrasado = useValorAtrasado(termo, 250)
   const consulta = useSugestoes(termoAtrasado)
 
-  // Só pessoas ativas recebem avistamento (as inativas não aparecem no mapa).
+  // Só pessoas ativas: recebem avistamento e aparecem no mapa e no mapa de calor.
   const opcoes = (consulta.data ?? []).filter((p) => p.status === 'ATIVA')
   const curta = termo.trim().length < 2
   const buscando = !curta && (termo !== termoAtrasado || consulta.isFetching)
@@ -39,7 +44,7 @@ export function BuscaPessoa({ aoEscolher, semResultado }: BuscaPessoaProps) {
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={`${id}-campo`} className="text-sm font-medium text-texto">
-        Quem foi vista? (nome, sobrenome ou apelido)
+        {rotulo}
       </label>
       <div className="relative">
         <input

@@ -14,6 +14,13 @@
   --cor-erro: #b3261e;
   --cor-sobreposicao: rgb(30 127 107 / 0.55); /* véu verde sobre imagens */
 
+  /* Escala do mapa de calor (poucos → muitos avistamentos). Os tiles do OpenStreetMap são
+     claros também no modo escuro, então a escala não muda com o tema. */
+  --cor-calor-1: #2c7fb8;
+  --cor-calor-2: #41ab5d;
+  --cor-calor-3: #fdae61;
+  --cor-calor-4: #d7191c;
+
   --fonte-base: 'Montserrat', system-ui, sans-serif;
 
   --raio-botao: 10px;

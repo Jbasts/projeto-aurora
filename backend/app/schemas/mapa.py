@@ -57,3 +57,27 @@ class AvistamentoSaida(BaseModel):
 
 class EnderecoSaida(BaseModel):
     endereco: str | None
+
+
+class AvistamentoHistoricoSaida(BaseModel):
+    """Linha do histórico de avistamentos no perfil da pessoa."""
+
+    id: uuid.UUID
+    latitude: float
+    longitude: float
+    endereco: str | None
+    visto_em: datetime
+    observacao: str | None
+    registrado_por: RegistradorRef | None
+    criado_em: datetime
+
+
+class PaginaAvistamentos(BaseModel):
+    itens: list[AvistamentoHistoricoSaida]
+    total: int
+    pagina: int
+    tamanho: int
+
+
+# Ponto do mapa de calor: [latitude, longitude, peso (número de avistamentos no ponto)].
+PontoCalor = tuple[float, float, int]

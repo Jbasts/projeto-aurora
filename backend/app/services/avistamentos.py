@@ -13,6 +13,27 @@ from app.services import auditoria
 from app.services.auditoria import AcaoAuditoria
 
 
+def historico(
+    sessao: Session, pessoa: Pessoa, *, pagina: int, tamanho: int
+) -> tuple[list[tuple[Avistamento, Usuario | None]], int]:
+    return repositorio_avistamentos.historico(sessao, pessoa.id, pagina=pagina, tamanho=tamanho)
+
+
+def calor(
+    sessao: Session, *, pessoa: Pessoa | None, de: datetime | None, ate: datetime | None
+) -> list[tuple[float, float, int]]:
+    """Mapa de calor geral (PSDR ativas) ou de uma pessoa, no período pedido."""
+    if de is not None and ate is not None and de > ate:
+        raise ErroApi(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "VALIDACAO",
+            "A data inicial do período não pode ser depois da data final.",
+        )
+    return repositorio_avistamentos.calor(
+        sessao, pessoa_id=pessoa.id if pessoa else None, de=de, ate=ate
+    )
+
+
 def _coordenada(valor: float) -> Decimal:
     return Decimal(str(round(valor, 6)))
 

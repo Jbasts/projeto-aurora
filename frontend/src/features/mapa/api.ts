@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { requisitar } from '../../api/cliente'
+import type { PontoCalor } from '../../components/mapa/CamadaCalor'
 import type { Coordenadas } from '../pessoas/tipos'
 import type { Perfil } from '../usuarios/perfis'
 
@@ -74,6 +75,57 @@ export function useRegistrarAvistamento() {
       void queryClient.invalidateQueries({ queryKey: ['mapa'] })
       void queryClient.invalidateQueries({ queryKey: ['pessoas', 'lista'] })
       void queryClient.invalidateQueries({ queryKey: ['pessoas', 'detalhe', pessoa_id] })
+      void queryClient.invalidateQueries({ queryKey: ['pessoas', 'avistamentos', pessoa_id] })
     },
+  })
+}
+
+/** Linha do histórico de avistamentos no perfil da pessoa. */
+export interface AvistamentoHistorico extends Coordenadas {
+  id: string
+  endereco: string | null
+  visto_em: string
+  observacao: string | null
+  registrado_por: RegistradorRef | null
+  criado_em: string
+}
+
+export interface PaginaAvistamentos {
+  itens: AvistamentoHistorico[]
+  total: number
+  pagina: number
+  tamanho: number
+}
+
+export function useHistoricoAvistamentos(pessoaId: string, pagina: number, tamanho: number) {
+  return useQuery({
+    queryKey: ['pessoas', 'avistamentos', pessoaId, pagina, tamanho],
+    queryFn: () =>
+      requisitar<PaginaAvistamentos>(
+        `/pessoas/${pessoaId}/avistamentos?pagina=${pagina}&tamanho=${tamanho}`,
+      ),
+    placeholderData: (anterior) => anterior,
+  })
+}
+
+/** Filtros do mapa de calor (seção 3.10). Datas em ISO; sem elas, todo o período. */
+export interface FiltrosCalor {
+  pessoaId?: string | null
+  de?: string | null
+  ate?: string | null
+}
+
+/** `ativo` = false não consulta (ex.: intervalo inválido). */
+export function useCalor({ pessoaId, de, ate }: FiltrosCalor, ativo = true) {
+  const parametros = new URLSearchParams()
+  if (pessoaId) parametros.set('pessoa_id', pessoaId)
+  if (de) parametros.set('de', de)
+  if (ate) parametros.set('ate', ate)
+  const consulta = parametros.toString()
+  return useQuery({
+    queryKey: ['mapa', 'calor', pessoaId ?? null, de ?? null, ate ?? null],
+    queryFn: () => requisitar<PontoCalor[]>(`/mapa/calor${consulta ? `?${consulta}` : ''}`),
+    enabled: ativo,
+    placeholderData: (anterior) => anterior,
   })
 }

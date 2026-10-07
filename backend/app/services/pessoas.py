@@ -24,6 +24,14 @@ def _pode_ver(usuario: Usuario, pessoa: Pessoa) -> bool:
     return usuario.perfil != PerfilUsuario.PADRAO or pessoa.status == StatusPessoa.ATIVA
 
 
+def obter_visivel(sessao: Session, pessoa_id: uuid.UUID, usuario: Usuario) -> Pessoa:
+    """Pessoa que o usuário pode ver, sem gerar auditoria (ex.: histórico, mapa de calor)."""
+    pessoa = repositorio_pessoas.buscar_por_id(sessao, pessoa_id)
+    if pessoa is None or not _pode_ver(usuario, pessoa):
+        raise _nao_encontrada()
+    return pessoa
+
+
 def _registrar(sessao: Session, acao: str, pessoa: Pessoa, usuario: Usuario, ip, **detalhes):
     auditoria.registrar(
         sessao,

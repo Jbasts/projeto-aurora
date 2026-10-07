@@ -7,8 +7,11 @@ import { Avatar } from '../components/Avatar'
 import { Botao } from '../components/Botao'
 import { CampoArquivo } from '../components/formulario/CampoArquivo'
 import { CampoTexto } from '../components/formulario/CampoTexto'
-import { Mapa } from '../components/mapa/MapaSobDemanda'
+import type { PontoCalor } from '../components/mapa/CamadaCalor'
+import { LegendaCalor } from '../components/mapa/LegendaCalor'
+import { Mapa, MapaCalor } from '../components/mapa/MapaSobDemanda'
 import { Modal } from '../components/Modal'
+import { Paginacao, TAMANHO_PAGINA_PADRAO } from '../components/Paginacao'
 import { TelaCarregando } from '../components/TelaCarregando'
 import { useUsuarioLogado } from '../contexts/autenticacao'
 import { formatarData, formatarDataHora } from '../features/comum/datas'
@@ -19,10 +22,12 @@ import {
   useRemoverFoto,
 } from '../features/pessoas/api'
 import { erroDaFoto, MAXIMO_FOTOS_ALBUM } from '../features/pessoas/esquemas'
+import { useCalor, useHistoricoAvistamentos } from '../features/mapa/api'
 import { ModalRegistrarAvistamento } from '../features/mapa/ModalRegistrarAvistamento'
 import { ModalInativar } from '../features/pessoas/ModalInativar'
 import { altFoto, iniciais, nomeCompleto } from '../features/pessoas/nomes'
 import type { Foto, Pessoa } from '../features/pessoas/tipos'
+import { ROTULOS_PERFIL } from '../features/usuarios/perfis'
 import { useTituloDocumento } from '../hooks/useTituloDocumento'
 import { PaginaNaoEncontrada } from './PaginaNaoEncontrada'
 import type { EstadoPerfilPessoa } from './PaginaCadastroPessoa'
@@ -205,6 +210,11 @@ function PerfilPessoa({ pessoa }: { pessoa: Pessoa }) {
 
       <Album pessoa={pessoa} gestor={gestor} aoAvisar={setAviso} />
 
+      <div className="grid gap-6 lg:grid-cols-2">
+        <HistoricoAvistamentos pessoaId={pessoa.id} />
+        <CalorDaPessoa pessoa={pessoa} />
+      </div>
+
       {registrando && (
         <ModalRegistrarAvistamento
           pessoaFixa={{ ...pessoa, url_miniatura: pessoa.foto_perfil?.url_miniatura ?? null }}
@@ -270,6 +280,104 @@ function Dado({
 }
 
 // --- Álbum (seção 3.8) ---
+
+/** Histórico (seção 4.3): data, hora, endereço e quem registrou, do mais recente. */
+function HistoricoAvistamentos({ pessoaId }: { pessoaId: string }) {
+  const [pagina, setPagina] = useState(1)
+  const [tamanho, setTamanho] = useState(TAMANHO_PAGINA_PADRAO)
+  const consulta = useHistoricoAvistamentos(pessoaId, pagina, tamanho)
+  const dados = consulta.data
+
+  return (
+    <Secao titulo="Histórico de avistamentos">
+      {consulta.isError ? (
+        <Alerta tipo="erro">Não foi possível carregar o histórico. {consulta.error.message}</Alerta>
+      ) : !dados ? (
+        <p role="status" className="text-texto-suave">
+          Carregando histórico…
+        </p>
+      ) : dados.total === 0 ? (
+        <p className="text-texto-suave">Nenhum avistamento registrado ainda.</p>
+      ) : (
+        <>
+          <ol className="flex flex-col">
+            {dados.itens.map((avistamento) => (
+              <li
+                key={avistamento.id}
+                className="flex flex-col gap-1 border-b border-divisor py-3 first:pt-0 last:border-0"
+              >
+                <span className="font-semibold text-texto">
+                  {formatarDataHora(avistamento.visto_em)}
+                </span>
+                <span className="text-sm text-texto">
+                  {avistamento.endereco ??
+                    `Coordenadas: ${avistamento.latitude.toFixed(5)}, ${avistamento.longitude.toFixed(5)}`}
+                </span>
+                <span className="text-sm text-texto-suave">
+                  Registrado por{' '}
+                  {avistamento.registrado_por
+                    ? `${avistamento.registrado_por.nome} (${ROTULOS_PERFIL[avistamento.registrado_por.perfil]})`
+                    : 'pessoa removida'}
+                </span>
+                {avistamento.observacao && (
+                  <span className="text-sm text-texto">
+                    <span className="text-texto-suave">Observação: </span>
+                    {avistamento.observacao}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ol>
+          <Paginacao
+            pagina={pagina}
+            tamanho={tamanho}
+            total={dados.total}
+            aoMudarPagina={setPagina}
+            aoMudarTamanho={(novo) => {
+              setTamanho(novo)
+              setPagina(1)
+            }}
+          />
+        </>
+      )}
+    </Secao>
+  )
+}
+
+const SEM_PONTOS: PontoCalor[] = []
+
+/** Mapa de calor individual: todos os avistamentos da pessoa (seção 3.10). */
+function CalorDaPessoa({ pessoa }: { pessoa: Pessoa }) {
+  const consulta = useCalor({ pessoaId: pessoa.id })
+  const pontos = consulta.data ?? SEM_PONTOS
+  const temLocal = pessoa.ultima_latitude != null && pessoa.ultima_longitude != null
+
+  return (
+    <Secao titulo="Mapa de calor">
+      {consulta.isError ? (
+        <Alerta tipo="erro">
+          Não foi possível carregar o mapa de calor. {consulta.error.message}
+        </Alerta>
+      ) : consulta.isSuccess && pontos.length === 0 ? (
+        <p className="text-texto-suave">Sem avistamentos para mostrar no mapa de calor.</p>
+      ) : (
+        <>
+          <p className="text-sm text-texto-suave">
+            Onde {nomeCompleto(pessoa)} costuma ser vista, considerando todos os avistamentos.
+          </p>
+          <MapaCalor
+            rotulo={`Mapa de calor dos avistamentos de ${nomeCompleto(pessoa)}`}
+            className="h-72"
+            pontos={pontos}
+            centro={temLocal ? [pessoa.ultima_latitude!, pessoa.ultima_longitude!] : undefined}
+            zoom={temLocal ? 15 : undefined}
+          />
+          <LegendaCalor />
+        </>
+      )}
+    </Secao>
+  )
+}
 
 function Album({
   pessoa,

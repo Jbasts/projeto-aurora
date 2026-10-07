@@ -73,6 +73,8 @@ function useGuardarPessoa() {
     queryClient.setQueryData(chavePessoa(pessoa.id), pessoa)
     void queryClient.invalidateQueries({ queryKey: ['pessoas', 'sugestoes'] })
     void queryClient.invalidateQueries({ queryKey: ['pessoas', 'lista'] })
+    // Inativar/reativar muda quem aparece no mapa e no mapa de calor.
+    void queryClient.invalidateQueries({ queryKey: ['mapa'] })
   }
 }
 
