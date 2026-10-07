@@ -8,10 +8,12 @@ import { Botao } from '../../components/Botao'
 import { CampoAreaTexto } from '../../components/formulario/CampoAreaTexto'
 import { CampoTexto } from '../../components/formulario/CampoTexto'
 import { Modal } from '../../components/Modal'
+import { useUsuarioLogado } from '../../contexts/autenticacao'
 import { paraCampoDataHora } from '../comum/datas'
 import { iniciais, nomeCompleto } from '../pessoas/nomes'
 import { SeletorLocal } from '../pessoas/SeletorLocal'
 import type { Coordenadas } from '../pessoas/tipos'
+import { ROTULOS_PERFIL } from '../usuarios/perfis'
 import { useEnderecoAproximado, useRegistrarAvistamento, type Avistamento } from './api'
 import { BuscaPessoa } from './BuscaPessoa'
 
@@ -29,7 +31,7 @@ export interface EstadoCadastroComLocal {
 }
 
 interface ModalRegistrarAvistamentoProps {
-  /** Ponto escolhido no mapa. Sem ele, o modal mostra o seletor de local (uso no perfil). */
+  /** Ponto já escolhido no mapa; dá para ajustar no minimapa antes de salvar. */
   coordenadas?: Coordenadas | null
   /** Pessoa já definida (perfil). Sem ela, o modal mostra a busca (uso no mapa). */
   pessoaFixa?: PessoaDoAvistamento
@@ -37,12 +39,7 @@ interface ModalRegistrarAvistamentoProps {
   aoRegistrar: (avistamento: Avistamento, pessoa: PessoaDoAvistamento) => void
 }
 
-const formato = new Intl.NumberFormat('pt-BR', {
-  minimumFractionDigits: 5,
-  maximumFractionDigits: 5,
-})
-
-/** Registrar avistamento (seção 3.9): pessoa, local, data e hora, observação. */
+/** Registrar avistamento (seção 3.9): pessoa, local no minimapa, data e hora, observação. */
 export function ModalRegistrarAvistamento({
   coordenadas,
   pessoaFixa,
@@ -50,6 +47,7 @@ export function ModalRegistrarAvistamento({
   aoRegistrar,
 }: ModalRegistrarAvistamentoProps) {
   const navigate = useNavigate()
+  const usuario = useUsuarioLogado()
   const registrar = useRegistrarAvistamento()
 
   const [pessoa, setPessoa] = useState<PessoaDoAvistamento | null>(pessoaFixa ?? null)
@@ -108,7 +106,7 @@ export function ModalRegistrarAvistamento({
           : 'Registrar avistamento'
       }
       aoFechar={aoFechar}
-      largo={!coordenadas}
+      largo
     >
       {pessoa ? (
         <div className="flex items-center gap-3 rounded-campo bg-fundo-topo p-3">
@@ -137,24 +135,14 @@ export function ModalRegistrarAvistamento({
         />
       )}
 
-      {coordenadas ? (
+      <SeletorLocal valor={local} aoMudar={setLocal} />
+      {local && (
         <p className="text-sm text-texto">
-          <span className="font-medium text-texto-suave">Local: </span>
+          <span className="font-medium text-texto-suave">Endereço aproximado: </span>
           {endereco.isPending
-            ? 'buscando endereço aproximado…'
-            : (endereco.data?.endereco ??
-              `${formato.format(coordenadas.latitude)}, ${formato.format(coordenadas.longitude)} (endereço indisponível; serão salvas só as coordenadas)`)}
+            ? 'buscando…'
+            : (endereco.data?.endereco ?? 'indisponível; serão salvas só as coordenadas')}
         </p>
-      ) : (
-        <>
-          <SeletorLocal valor={local} aoMudar={setLocal} />
-          {local && endereco.data?.endereco && (
-            <p className="text-sm text-texto">
-              <span className="font-medium text-texto-suave">Endereço aproximado: </span>
-              {endereco.data.endereco}
-            </p>
-          )}
-        </>
       )}
 
       <CampoTexto
@@ -172,6 +160,11 @@ export function ModalRegistrarAvistamento({
         value={observacao}
         onChange={(e) => setObservacao(e.target.value)}
       />
+
+      <p className="text-sm text-texto">
+        <span className="font-medium text-texto-suave">Registrado por: </span>
+        {usuario.nome} ({ROTULOS_PERFIL[usuario.perfil]})
+      </p>
 
       {erro && <Alerta tipo="erro">{erro}</Alerta>}
 

@@ -5,7 +5,7 @@ from typing import Literal
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from app.entities import Foto, Pessoa, StatusPessoa
+from app.entities import Avistamento, Foto, Pessoa, StatusPessoa, Usuario
 
 OrdemPessoas = Literal["nome", "visto"]
 
@@ -95,13 +95,22 @@ def listar(
     return [(pessoa, foto) for pessoa, foto in sessao.execute(consulta).all()], total
 
 
-def marcadores(sessao: Session) -> list[tuple[Pessoa, Foto | None]]:
-    """PSDR ativas que já têm última localização (seção 3.9)."""
+def marcadores(sessao: Session) -> list[tuple[Pessoa, Foto | None, Usuario | None]]:
+    """PSDR ativas que já têm última localização (seção 3.9), com quem registrou o último
+    avistamento."""
+    ultimo = (
+        select(Avistamento.pessoa_id, Avistamento.registrado_por_id)
+        .distinct(Avistamento.pessoa_id)
+        .order_by(Avistamento.pessoa_id, Avistamento.visto_em.desc(), Avistamento.criado_em.desc())
+        .subquery()
+    )
     return [
-        (pessoa, foto)
-        for pessoa, foto in sessao.execute(
-            select(Pessoa, Foto)
+        (pessoa, foto, registrador)
+        for pessoa, foto, registrador in sessao.execute(
+            select(Pessoa, Foto, Usuario)
             .outerjoin(Foto, Foto.id == Pessoa.foto_perfil_id)
+            .outerjoin(ultimo, ultimo.c.pessoa_id == Pessoa.id)
+            .outerjoin(Usuario, Usuario.id == ultimo.c.registrado_por_id)
             .where(
                 Pessoa.status == StatusPessoa.ATIVA,
                 Pessoa.ultima_latitude.is_not(None),

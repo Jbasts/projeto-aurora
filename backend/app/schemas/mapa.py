@@ -4,7 +4,16 @@ from typing import Annotated
 
 from pydantic import AfterValidator, BaseModel, Field
 
-from app.schemas.pessoas import UsuarioRef, nao_no_futuro, texto_opcional
+from app.entities import PerfilUsuario
+from app.schemas.pessoas import nao_no_futuro, texto_opcional
+
+
+class RegistradorRef(BaseModel):
+    """Quem registrou um avistamento, com o perfil de acesso."""
+
+    id: uuid.UUID
+    nome: str
+    perfil: PerfilUsuario
 
 
 class MarcadorSaida(BaseModel):
@@ -20,6 +29,8 @@ class MarcadorSaida(BaseModel):
     longitude: float
     ultimo_endereco: str | None
     ultima_vez_visto: datetime
+    # Quem registrou o avistamento mais recente.
+    registrado_por: RegistradorRef | None
 
 
 class AvistamentoEntrada(BaseModel):
@@ -38,7 +49,7 @@ class AvistamentoSaida(BaseModel):
     endereco: str | None
     visto_em: datetime
     observacao: str | None
-    registrado_por: UsuarioRef | None
+    registrado_por: RegistradorRef | None
     criado_em: datetime
     # True se este passou a ser o avistamento mais recente da pessoa.
     mais_recente: bool

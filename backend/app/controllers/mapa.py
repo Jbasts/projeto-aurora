@@ -2,12 +2,22 @@ from sqlalchemy.orm import Session
 
 from app.entities import Usuario
 from app.repositories import pessoas as repositorio_pessoas
-from app.repositories import usuarios as repositorio_usuarios
-from app.schemas.mapa import AvistamentoEntrada, AvistamentoSaida, EnderecoSaida, MarcadorSaida
-from app.schemas.pessoas import UsuarioRef
+from app.schemas.mapa import (
+    AvistamentoEntrada,
+    AvistamentoSaida,
+    EnderecoSaida,
+    MarcadorSaida,
+    RegistradorRef,
+)
 from app.services import arquivos as servico_arquivos
 from app.services import avistamentos as servico_avistamentos
 from app.services.geocodificacao import Geocodificador
+
+
+def _registrador(usuario: Usuario | None) -> RegistradorRef | None:
+    if usuario is None:
+        return None
+    return RegistradorRef(id=usuario.id, nome=usuario.nome, perfil=usuario.perfil)
 
 
 def marcadores(sessao: Session) -> list[MarcadorSaida]:
@@ -23,8 +33,9 @@ def marcadores(sessao: Session) -> list[MarcadorSaida]:
             longitude=float(pessoa.ultima_longitude),
             ultimo_endereco=pessoa.ultimo_endereco,
             ultima_vez_visto=pessoa.ultima_vez_visto,
+            registrado_por=_registrador(registrador),
         )
-        for pessoa, foto in repositorio_pessoas.marcadores(sessao)
+        for pessoa, foto, registrador in repositorio_pessoas.marcadores(sessao)
     ]
 
 
@@ -48,7 +59,6 @@ def registrar_avistamento(
         usuario=usuario,
         ip=ip,
     )
-    nomes = repositorio_usuarios.nomes_por_id(sessao, {usuario.id})
     return AvistamentoSaida(
         id=avistamento.id,
         pessoa_id=avistamento.pessoa_id,
@@ -57,7 +67,7 @@ def registrar_avistamento(
         endereco=avistamento.endereco,
         visto_em=avistamento.visto_em,
         observacao=avistamento.observacao,
-        registrado_por=UsuarioRef(id=usuario.id, nome=nomes.get(usuario.id, usuario.nome)),
+        registrado_por=_registrador(usuario),
         criado_em=avistamento.criado_em,
         mais_recente=mais_recente,
     )

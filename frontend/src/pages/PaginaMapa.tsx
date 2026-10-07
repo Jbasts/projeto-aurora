@@ -8,6 +8,7 @@ import { Avatar } from '../components/Avatar'
 import { Botao } from '../components/Botao'
 import { CamadaMarcadores, type PontoNoMapa } from '../components/mapa/CamadaMarcadores'
 import { Mapa } from '../components/mapa/Mapa'
+import { Paginacao, TAMANHO_PAGINA_PADRAO } from '../components/Paginacao'
 import { TituloPagina } from '../components/TituloPagina'
 import { useUsuarioLogado } from '../contexts/autenticacao'
 import { formatarDataHora } from '../features/comum/datas'
@@ -15,12 +16,18 @@ import { useMarcadores, type Marcador } from '../features/mapa/api'
 import { ModalRegistrarAvistamento } from '../features/mapa/ModalRegistrarAvistamento'
 import { altFoto, iniciais, nomeCompleto } from '../features/pessoas/nomes'
 import type { Coordenadas } from '../features/pessoas/tipos'
+import { ROTULOS_PERFIL } from '../features/usuarios/perfis'
 import { useTituloDocumento } from '../hooks/useTituloDocumento'
 
 function localizacao(marcador: Marcador): string {
   return (
     marcador.ultimo_endereco ?? `${marcador.latitude.toFixed(5)}, ${marcador.longitude.toFixed(5)}`
   )
+}
+
+function registrador(marcador: Marcador): string | null {
+  const quem = marcador.registrado_por
+  return quem ? `${quem.nome} (${ROTULOS_PERFIL[quem.perfil]})` : null
 }
 
 /** Entrega a instância do Leaflet para os botões fora do mapa (GPS, centro do mapa). */
@@ -269,6 +276,7 @@ function PainelPessoa({
         </Item>
         <Item rotulo="Última localização">{localizacao(marcador)}</Item>
         <Item rotulo="Visto por último">{formatarDataHora(marcador.ultima_vez_visto)}</Item>
+        <Item rotulo="Registrado por">{registrador(marcador)}</Item>
       </dl>
       <div className="flex w-full flex-col gap-3">
         <Link
@@ -304,6 +312,13 @@ function ListaMarcadores({
   marcadores: Marcador[]
   aoMostrar: (marcador: Marcador) => void
 }) {
+  const [pagina, setPagina] = useState(1)
+  const [tamanho, setTamanho] = useState(TAMANHO_PAGINA_PADRAO)
+  // Se a lista encolher (ex.: após atualizar), não deixa a página atual além da última.
+  const ultimaPagina = Math.max(1, Math.ceil(marcadores.length / tamanho))
+  const paginaAtual = Math.min(pagina, ultimaPagina)
+  const visiveis = marcadores.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho)
+
   if (marcadores.length === 0) {
     return (
       <p role="status" className="py-10 text-center text-texto-suave">
@@ -312,67 +327,85 @@ function ListaMarcadores({
     )
   }
   return (
-    <div className="overflow-x-auto rounded-card border border-divisor">
-      <table className="w-full text-left text-sm">
-        <caption className="sr-only">Pessoas no mapa, da vista mais recentemente</caption>
-        <thead className="bg-fundo-topo text-texto">
-          <tr>
-            {['Pessoa', 'Idade aproximada', 'Última localização', 'Visto por último', 'Ações'].map(
-              (t) => (
+    <>
+      <div className="overflow-x-auto rounded-card border border-divisor">
+        <table className="w-full text-left text-sm">
+          <caption className="sr-only">Pessoas no mapa, da vista mais recentemente</caption>
+          <thead className="bg-fundo-topo text-texto">
+            <tr>
+              {[
+                'Pessoa',
+                'Idade aproximada',
+                'Última localização',
+                'Visto por último',
+                'Registrado por',
+                'Ações',
+              ].map((t) => (
                 <th key={t} scope="col" className="px-4 py-3 font-semibold whitespace-nowrap">
                   {t}
                 </th>
-              ),
-            )}
-          </tr>
-        </thead>
-        <tbody>
-          {marcadores.map((m) => (
-            <tr key={m.id} className="border-t border-divisor align-middle">
-              <th scope="row" className="px-4 py-3 font-normal">
-                <span className="flex items-center gap-3">
-                  <Avatar
-                    url={m.url_miniatura}
-                    iniciais={iniciais(m)}
-                    alt={m.url_miniatura ? altFoto(m) : ''}
-                    tamanho="pequeno"
-                  />
-                  <span className="flex flex-col">
-                    <span className="font-semibold text-texto">{nomeCompleto(m)}</span>
-                    {m.apelido && <span className="text-texto-suave">"{m.apelido}"</span>}
-                  </span>
-                </span>
-              </th>
-              <td className="px-4 py-3 text-texto">
-                {m.idade_aproximada != null ? `${m.idade_aproximada} anos` : '—'}
-              </td>
-              <td className="px-4 py-3 text-texto">{localizacao(m)}</td>
-              <td className="px-4 py-3 whitespace-nowrap text-texto">
-                {formatarDataHora(m.ultima_vez_visto)}
-              </td>
-              <td className="px-4 py-3">
-                <div className="flex flex-nowrap gap-2">
-                  <Link
-                    to={`/pessoas/${m.id}`}
-                    aria-label={`Ver perfil de ${nomeCompleto(m)}`}
-                    className="alvo-toque inline-flex items-center rounded-botao border border-borda-campo px-3 font-semibold whitespace-nowrap text-texto hover:bg-fundo-topo"
-                  >
-                    Ver perfil
-                  </Link>
-                  <Botao
-                    variante="secundario"
-                    className="px-3 text-sm whitespace-nowrap"
-                    aria-label={`Mostrar ${nomeCompleto(m)} no mapa`}
-                    onClick={() => aoMostrar(m)}
-                  >
-                    Mostrar no mapa
-                  </Botao>
-                </div>
-              </td>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {visiveis.map((m) => (
+              <tr key={m.id} className="border-t border-divisor align-middle">
+                <th scope="row" className="px-4 py-3 font-normal">
+                  <span className="flex items-center gap-3">
+                    <Avatar
+                      url={m.url_miniatura}
+                      iniciais={iniciais(m)}
+                      alt={m.url_miniatura ? altFoto(m) : ''}
+                      tamanho="pequeno"
+                    />
+                    <span className="flex flex-col">
+                      <span className="font-semibold text-texto">{nomeCompleto(m)}</span>
+                      {m.apelido && <span className="text-texto-suave">"{m.apelido}"</span>}
+                    </span>
+                  </span>
+                </th>
+                <td className="px-4 py-3 text-texto">
+                  {m.idade_aproximada != null ? `${m.idade_aproximada} anos` : '—'}
+                </td>
+                <td className="px-4 py-3 text-texto">{localizacao(m)}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-texto">
+                  {formatarDataHora(m.ultima_vez_visto)}
+                </td>
+                <td className="px-4 py-3 text-texto">{registrador(m) ?? '—'}</td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-nowrap gap-2">
+                    <Link
+                      to={`/pessoas/${m.id}`}
+                      aria-label={`Ver perfil de ${nomeCompleto(m)}`}
+                      className="alvo-toque inline-flex items-center rounded-botao border border-borda-campo px-3 font-semibold whitespace-nowrap text-texto hover:bg-fundo-topo"
+                    >
+                      Ver perfil
+                    </Link>
+                    <Botao
+                      variante="secundario"
+                      className="px-3 text-sm whitespace-nowrap"
+                      aria-label={`Mostrar ${nomeCompleto(m)} no mapa`}
+                      onClick={() => aoMostrar(m)}
+                    >
+                      Mostrar no mapa
+                    </Botao>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <Paginacao
+        pagina={paginaAtual}
+        tamanho={tamanho}
+        total={marcadores.length}
+        aoMudarPagina={setPagina}
+        aoMudarTamanho={(novo) => {
+          setTamanho(novo)
+          setPagina(1)
+        }}
+      />
+    </>
   )
 }

@@ -1,7 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { requisitar } from '../../api/cliente'
-import type { Coordenadas, UsuarioRef } from '../pessoas/tipos'
+import type { Coordenadas } from '../pessoas/tipos'
+import type { Perfil } from '../usuarios/perfis'
+
+/** Quem registrou um avistamento, com o perfil de acesso. */
+export interface RegistradorRef {
+  id: string
+  nome: string
+  perfil: Perfil
+}
 
 /** PSDR ativa na última localização (seção 3.9). */
 export interface Marcador {
@@ -15,6 +23,8 @@ export interface Marcador {
   longitude: number
   ultimo_endereco: string | null
   ultima_vez_visto: string
+  /** Quem registrou o avistamento mais recente. */
+  registrado_por: RegistradorRef | null
 }
 
 export interface NovoAvistamento extends Coordenadas {
@@ -26,7 +36,7 @@ export interface NovoAvistamento extends Coordenadas {
 export interface Avistamento extends NovoAvistamento {
   id: string
   endereco: string | null
-  registrado_por: UsuarioRef | null
+  registrado_por: RegistradorRef | null
   criado_em: string
   mais_recente: boolean
 }

@@ -76,6 +76,30 @@ class TestMarcadores:
         assert corpo[0]["latitude"] == -22.505
         assert corpo[0]["ultimo_endereco"] == "Praça da Liberdade"
         assert corpo[0]["url_miniatura"] is None
+        assert corpo[0]["registrado_por"] is None
+
+    def test_mostra_quem_registrou_o_ultimo_avistamento(
+        self, cliente, padrao, colaborador, criar_usuario, criar_pessoa, sessao
+    ):
+        admin = criar_usuario(email="adm@exemplo.com", nome="Adm Teste", perfil=PerfilUsuario.ADMIN)
+        pessoa = criar_pessoa(visto_ha_horas=1)
+        for usuario, horas in [(admin, 1), (colaborador, 3)]:
+            sessao.add(
+                Avistamento(
+                    pessoa_id=pessoa.id,
+                    latitude=Decimal("-22.505"),
+                    longitude=Decimal("-43.179"),
+                    visto_em=AGORA - timedelta(hours=horas),
+                    registrado_por_id=usuario.id,
+                )
+            )
+        sessao.flush()
+        corpo = cliente.get(MARCADORES, headers=cabecalho(padrao)).json()
+        assert corpo[0]["registrado_por"] == {
+            "id": str(admin.id),
+            "nome": "Adm Teste",
+            "perfil": "ADMIN",
+        }
 
     def test_sem_login(self, cliente):
         assert cliente.get(MARCADORES).status_code == 401
@@ -99,6 +123,7 @@ class TestAvistamentos:
         assert corpo["endereco"] == "Rua do Imperador, 288 – Centro, Petrópolis"
         assert corpo["observacao"] == "Perto do ponto de ônibus"
         assert corpo["registrado_por"]["nome"] == "Colab Teste"
+        assert corpo["registrado_por"]["perfil"] == colaborador.perfil.value
         assert corpo["mais_recente"] is True
         assert geocodificador.consultas == [(-22.51, -43.18)]
 

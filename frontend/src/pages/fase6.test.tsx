@@ -17,6 +17,7 @@ function marcador(dados: Partial<Marcador> = {}): Marcador {
     longitude: -43.179,
     ultimo_endereco: 'Rua do Imperador, 288 – Centro, Petrópolis',
     ultima_vez_visto: '2026-10-05T19:30:00Z',
+    registrado_por: { id: 'u1', nome: 'Ana Souza', perfil: 'COLABORADOR' },
     ...dados,
   }
 }
@@ -75,6 +76,7 @@ describe('Mapa', () => {
     expect(within(painel).getByText('Zé')).toBeInTheDocument()
     expect(within(painel).getByText(/Rua do Imperador, 288/)).toBeInTheDocument()
     expect(within(painel).getByText('05/10/2026 às 16:30')).toBeInTheDocument()
+    expect(within(painel).getByText('Ana Souza (Pessoa colaboradora)')).toBeInTheDocument()
     expect(within(painel).queryByRole('textbox')).not.toBeInTheDocument()
     expect(within(painel).getByRole('link', { name: 'Ver perfil completo' })).toHaveAttribute(
       'href',
@@ -97,6 +99,7 @@ describe('Mapa', () => {
     const tabela = within(screen.getByRole('table'))
     expect(tabela.getByText('José Luís')).toBeInTheDocument()
     expect(tabela.getByText(/Rua do Imperador/)).toBeInTheDocument()
+    expect(tabela.getByText('Ana Souza (Pessoa colaboradora)')).toBeInTheDocument()
     expect(tabela.getByRole('link', { name: 'Ver perfil de José Luís' })).toBeInTheDocument()
 
     await pessoa.click(tabela.getByRole('button', { name: 'Mostrar José Luís no mapa' }))
@@ -105,6 +108,28 @@ describe('Mapa', () => {
       'aria-pressed',
       'false',
     )
+  })
+
+  it('"Ver como lista" pagina de 5 em 5', async () => {
+    const pessoa = userEvent.setup()
+    mockarApi({
+      'POST /auth/refresh': { corpo: sessaoTeste('PADRAO') },
+      'GET /mapa/marcadores': {
+        corpo: Array.from({ length: 7 }, (_, i) =>
+          marcador({ id: `p${i}`, nome: `Pessoa${i}`, apelido: null }),
+        ),
+      },
+    })
+    renderizarApp('/mapa')
+
+    await pessoa.click(await screen.findByRole('button', { name: 'Ver como lista' }))
+    const linhas = () => within(screen.getByRole('table')).getAllByRole('row').slice(1)
+    expect(linhas()).toHaveLength(5)
+    expect(screen.getByText('Página 1 de 2')).toBeInTheDocument()
+
+    await pessoa.click(screen.getByRole('button', { name: 'Próxima página' }))
+    expect(linhas()).toHaveLength(2)
+    expect(screen.getByText('Pessoa5 Luís')).toBeInTheDocument()
   })
 
   it('gestor registra avistamento escolhendo a pessoa pelo autocomplete', async () => {
@@ -154,6 +179,11 @@ describe('Mapa', () => {
     )
     const modal = within(screen.getByRole('dialog', { name: 'Registrar avistamento' }))
     expect(await modal.findByText(/Praça da Liberdade – Centro, Petrópolis/)).toBeInTheDocument()
+    expect(
+      await modal.findByRole('region', { name: 'Mapa para marcar onde a pessoa foi vista' }),
+    ).toBeInTheDocument()
+    expect(modal.getByText(/Local marcado: -22,50500, -43,17900/)).toBeInTheDocument()
+    expect(modal.getByText(/\(Pessoa colaboradora\)/)).toBeInTheDocument()
 
     const busca = modal.getByRole('combobox', { name: /Quem foi vista/ })
     await pessoa.type(busca, 'marc')
@@ -194,7 +224,9 @@ describe('Mapa', () => {
       await screen.findByRole('button', { name: 'Registrar avistamento no centro do mapa' }),
     )
     const modal = within(screen.getByRole('dialog'))
-    expect(await modal.findByText(/endereço indisponível/)).toBeInTheDocument()
+    expect(
+      await modal.findByText(/indisponível; serão salvas só as coordenadas/),
+    ).toBeInTheDocument()
     await pessoa.type(modal.getByRole('combobox'), 'Fulano')
     await pessoa.click(await modal.findByRole('button', { name: 'Cadastrar nova pessoa' }))
 
