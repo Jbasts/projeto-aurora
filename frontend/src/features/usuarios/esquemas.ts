@@ -1,12 +1,14 @@
 import { z } from 'zod'
 
 import { MENSAGEM_SENHAS_DIFERENTES, senhaForte, telefone } from '../auth/esquemas'
+import { camposEndereco } from '../enderecos/esquemas'
 
 // Espelham app/schemas/usuarios.py.
 
 export const esquemaMeusDados = z.object({
   nome: z.string().trim().min(2, 'Informe seu nome.').max(150, 'Use no máximo 150 caracteres.'),
   telefone,
+  ...camposEndereco,
 })
 
 export const esquemaTrocarSenha = z

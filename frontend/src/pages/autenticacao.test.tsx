@@ -1,10 +1,10 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 
 import { mascaraTelefone } from '../components/formulario/mascaras'
 import { formatarMinutosSegundos } from '../hooks/useContagemRegressiva'
-import { mockarApi, renderizarApp, SEM_SESSAO } from '../test/utilitarios'
+import { mockarApi, renderizarApp, SEM_SESSAO, type RespostaFalsa } from '../test/utilitarios'
 
 describe('Login', () => {
   async function preencherEEntrar(email = 'ana@exemplo.com', senha = 'SenhaBoa123') {
@@ -84,16 +84,84 @@ describe('Login', () => {
   })
 })
 
+const VIACEP = 'GET /ws/25651000/json/'
+const RESPOSTA_VIACEP: RespostaFalsa = {
+  corpo: {
+    cep: '25651-000',
+    logradouro: 'Rua Afrânio de Melo Franco',
+    complemento: '',
+    bairro: 'Quitandinha',
+    localidade: 'Petrópolis',
+    uf: 'RJ',
+  },
+}
+
 describe('Cadastro', () => {
   async function preencher(senha = 'SenhaBoa123', confirmar = senha) {
     const usuario = userEvent.setup()
     await usuario.type(await screen.findByLabelText('Nome'), 'Ana Souza')
     await usuario.type(screen.getByLabelText('Email'), 'ana@exemplo.com')
     await usuario.type(screen.getByLabelText('Telefone (opcional)'), '24988887777')
+    await usuario.type(screen.getByLabelText('CEP'), '25651000')
+    await waitFor(() =>
+      expect(screen.getByLabelText('Rua')).toHaveValue('Rua Afrânio de Melo Franco'),
+    )
+    await usuario.type(screen.getByLabelText('Número'), '333')
     await usuario.type(screen.getByLabelText('Senha'), senha)
     await usuario.type(screen.getByLabelText('Confirmar senha'), confirmar)
     return usuario
   }
+
+  it('preenche o endereço pelo CEP (ViaCEP) e leva o foco para o número', async () => {
+    const { chamadas } = mockarApi({ 'POST /auth/refresh': SEM_SESSAO, [VIACEP]: RESPOSTA_VIACEP })
+    const usuario = userEvent.setup()
+    renderizarApp('/cadastro')
+
+    await usuario.type(await screen.findByLabelText('CEP'), '25651000')
+    expect(screen.getByLabelText('CEP')).toHaveValue('25651-000')
+    await waitFor(() => expect(screen.getByLabelText('Número')).toHaveFocus())
+    expect(screen.getByLabelText('Rua')).toHaveValue('Rua Afrânio de Melo Franco')
+    expect(screen.getByLabelText('Bairro (opcional)')).toHaveValue('Quitandinha')
+    expect(screen.getByLabelText('Cidade')).toHaveValue('Petrópolis')
+    expect(screen.getByLabelText('UF')).toHaveValue('RJ')
+    expect(screen.getByText(/Endereço preenchido pelo CEP/)).toBeInTheDocument()
+    const consulta = chamadas.find((c) => c.chave === VIACEP)
+    expect(consulta?.url.hostname).toBe('viacep.com.br')
+  })
+
+  it('avisa quando o CEP não existe', async () => {
+    mockarApi({ 'POST /auth/refresh': SEM_SESSAO, [VIACEP]: { corpo: { erro: 'true' } } })
+    const usuario = userEvent.setup()
+    renderizarApp('/cadastro')
+
+    await usuario.type(await screen.findByLabelText('CEP'), '25651000')
+    expect(await screen.findByText(/CEP não encontrado/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Rua')).toHaveValue('')
+  })
+
+  it('deixa preencher à mão quando o ViaCEP está fora do ar', async () => {
+    mockarApi({ 'POST /auth/refresh': SEM_SESSAO, [VIACEP]: { status: 503 } })
+    const usuario = userEvent.setup()
+    renderizarApp('/cadastro')
+
+    await usuario.type(await screen.findByLabelText('CEP'), '25651000')
+    expect(await screen.findByText(/Preencha o endereço manualmente/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Rua')).toBeEnabled()
+  })
+
+  it('o endereço é obrigatório', async () => {
+    const { chamadas } = mockarApi({ 'POST /auth/refresh': SEM_SESSAO })
+    const usuario = userEvent.setup()
+    renderizarApp('/cadastro')
+    await usuario.click(await screen.findByRole('button', { name: 'Cadastrar' }))
+
+    expect(await screen.findByText(/Informe o CEP com 8 dígitos/)).toBeInTheDocument()
+    expect(screen.getByText('Informe a rua.')).toBeInTheDocument()
+    expect(screen.getByText('Informe o número (ou S/N).')).toBeInTheDocument()
+    expect(screen.getByText('Informe a cidade.')).toBeInTheDocument()
+    expect(screen.getByText('Escolha o estado (UF).')).toBeInTheDocument()
+    expect(chamadas.map((c) => c.chave)).not.toContain('POST /auth/cadastro')
+  })
 
   it('não tem campo de perfil de acesso nem cargo', async () => {
     mockarApi({ 'POST /auth/refresh': SEM_SESSAO })
@@ -120,31 +188,36 @@ describe('Cadastro', () => {
   })
 
   it('aplica a máscara no telefone', async () => {
-    mockarApi({ 'POST /auth/refresh': SEM_SESSAO })
+    mockarApi({ 'POST /auth/refresh': SEM_SESSAO, [VIACEP]: RESPOSTA_VIACEP })
     renderizarApp('/cadastro')
     await preencher()
     expect(screen.getByLabelText('Telefone (opcional)')).toHaveValue('(24) 98888-7777')
   })
 
   it('avisa quando as senhas não são iguais', async () => {
-    mockarApi({ 'POST /auth/refresh': SEM_SESSAO })
+    mockarApi({ 'POST /auth/refresh': SEM_SESSAO, [VIACEP]: RESPOSTA_VIACEP })
     renderizarApp('/cadastro')
     const usuario = await preencher('SenhaBoa123', 'Outra123')
     await usuario.click(screen.getByRole('button', { name: 'Cadastrar' }))
     expect(await screen.findByText('As senhas não são iguais.')).toBeInTheDocument()
   })
 
-  it('envia os dados e mostra a tela de cadastro enviado', async () => {
+  it('envia os dados e pede para confirmar o email', async () => {
+    const neutra = 'Se este email estiver cadastrado e ainda não tiver sido confirmado, ...'
     const { chamadas } = mockarApi({
       'POST /auth/refresh': SEM_SESSAO,
+      [VIACEP]: RESPOSTA_VIACEP,
       'POST /auth/cadastro': { status: 201, corpo: { mensagem: 'Cadastro enviado.' } },
+      'POST /auth/reenviar-verificacao': { corpo: { mensagem: neutra } },
     })
     const { router } = renderizarApp('/cadastro')
     const usuario = await preencher()
     await usuario.click(screen.getByRole('button', { name: 'Cadastrar' }))
 
     expect(await screen.findByRole('heading', { name: 'Cadastro enviado' })).toBeInTheDocument()
-    expect(screen.getByText(/pessoa administradora vai analisar/)).toBeInTheDocument()
+    expect(screen.getByText('Confirme seu email')).toBeInTheDocument()
+    expect(screen.getByText('ana@exemplo.com', { selector: 'strong' })).toBeInTheDocument()
+    expect(screen.getByText(/pessoa\s+administradora vai analisar/)).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/cadastro-enviado')
     expect(chamadas.find((c) => c.chave === 'POST /auth/cadastro')?.corpo).toEqual({
       nome: 'Ana Souza',
@@ -152,6 +225,20 @@ describe('Cadastro', () => {
       telefone: '(24) 98888-7777',
       senha: 'SenhaBoa123',
       confirmar_senha: 'SenhaBoa123',
+      cep: '25651-000',
+      logradouro: 'Rua Afrânio de Melo Franco',
+      numero: '333',
+      complemento: '',
+      bairro: 'Quitandinha',
+      cidade: 'Petrópolis',
+      uf: 'RJ',
+    })
+
+    expect(screen.getByLabelText('Email cadastrado')).toHaveValue('ana@exemplo.com')
+    await usuario.click(screen.getByRole('button', { name: 'Reenviar email de confirmação' }))
+    expect(await screen.findByRole('status')).toHaveTextContent(neutra)
+    expect(chamadas.find((c) => c.chave === 'POST /auth/reenviar-verificacao')?.corpo).toEqual({
+      email: 'ana@exemplo.com',
     })
   })
 
@@ -159,6 +246,7 @@ describe('Cadastro', () => {
     const mensagem = 'Este email já está cadastrado. Faça login ou recupere sua senha.'
     mockarApi({
       'POST /auth/refresh': SEM_SESSAO,
+      [VIACEP]: RESPOSTA_VIACEP,
       'POST /auth/cadastro': {
         status: 422,
         corpo: {
@@ -173,7 +261,61 @@ describe('Cadastro', () => {
     await usuario.click(screen.getByRole('button', { name: 'Cadastrar' }))
 
     expect(await screen.findByText(mensagem)).toBeInTheDocument()
-    expect(screen.getByLabelText('Email')).toHaveAccessibleDescription(mensagem)
+    expect(screen.getByLabelText('Email')).toHaveAccessibleDescription(
+      expect.stringContaining(mensagem),
+    )
+  })
+})
+
+describe('Confirmação de email', () => {
+  it('o link confirma o email', async () => {
+    const { chamadas } = mockarApi({
+      'POST /auth/refresh': SEM_SESSAO,
+      'POST /auth/verificar-email': { corpo: { mensagem: 'Email confirmado. Aguarde.' } },
+    })
+    renderizarApp('/verificar-email?token=abc123')
+
+    expect(await screen.findByRole('heading', { name: 'Email confirmado' })).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('Email confirmado. Aguarde.')
+    expect(screen.getByRole('link', { name: 'Ir para o login' })).toHaveAttribute('href', '/login')
+    const confirmacoes = chamadas.filter((c) => c.chave === 'POST /auth/verificar-email')
+    expect(confirmacoes).toHaveLength(1)
+    expect(confirmacoes[0]?.corpo).toEqual({ token: 'abc123' })
+  })
+
+  it('link inválido oferece um novo link', async () => {
+    mockarApi({
+      'POST /auth/refresh': SEM_SESSAO,
+      'POST /auth/verificar-email': {
+        status: 400,
+        corpo: { detail: 'Link inválido.', codigo: 'TOKEN_INVALIDO' },
+      },
+    })
+    renderizarApp('/verificar-email?token=velho')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/expirou ou já foi usado/)
+    expect(screen.getByLabelText('Email cadastrado')).toHaveValue('')
+    expect(
+      screen.getByRole('button', { name: 'Reenviar email de confirmação' }),
+    ).toBeInTheDocument()
+  })
+
+  it('login de conta sem email confirmado oferece reenviar o link', async () => {
+    const usuario = userEvent.setup()
+    mockarApi({
+      'POST /auth/refresh': SEM_SESSAO,
+      'POST /auth/login': {
+        status: 403,
+        corpo: { detail: 'Confirme seu email para continuar.', codigo: 'EMAIL_NAO_VERIFICADO' },
+      },
+    })
+    renderizarApp('/login')
+    await usuario.type(await screen.findByLabelText('Email'), 'ana@exemplo.com')
+    await usuario.type(screen.getByLabelText('Senha'), 'SenhaBoa123')
+    await usuario.click(screen.getByRole('button', { name: 'Entrar' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Confirme seu email para continuar.')
+    expect(screen.getByLabelText('Email cadastrado')).toHaveValue('ana@exemplo.com')
   })
 })
 

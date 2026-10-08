@@ -4,7 +4,7 @@ from app.entities.avistamento import Avistamento
 from app.entities.comum import PerfilUsuario, StatusPessoa, StatusUsuario, TipoFoto
 from app.entities.log_auditoria import LogAuditoria
 from app.entities.pessoa import Foto, Pessoa
-from app.entities.usuario import TokenRedefinicaoSenha, Usuario
+from app.entities.usuario import TokenRedefinicaoSenha, TokenVerificacaoEmail, Usuario
 
 __all__ = [
     "Avistamento",
@@ -16,5 +16,6 @@ __all__ = [
     "StatusUsuario",
     "TipoFoto",
     "TokenRedefinicaoSenha",
+    "TokenVerificacaoEmail",
     "Usuario",
 ]

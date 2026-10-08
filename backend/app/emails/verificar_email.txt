@@ -1,0 +1,11 @@
+Projeto Aurora — confirme seu email
+
+Olá, $nome.
+
+Recebemos seu cadastro na plataforma Projeto Aurora. Para continuar, confirme
+que este email é seu abrindo o link abaixo. Ele vale por $horas horas.
+
+$link
+
+Depois da confirmação, uma pessoa administradora vai analisar seu cadastro e
+liberar seu acesso. Se você não se cadastrou, ignore este email.

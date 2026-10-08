@@ -4,6 +4,7 @@ Uso: cd backend && python -m app.scripts.criar_admin
 """
 
 import sys
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -41,6 +42,7 @@ def criar_admin(
         senha_hash=gerar_hash_senha(senha),
         perfil=PerfilUsuario.ADMIN,
         status=StatusUsuario.ATIVO,
+        email_verificado_em=datetime.now(UTC),
     )
     sessao.add(usuario)
     sessao.flush()

@@ -9,3 +9,9 @@ export function mascaraTelefone(valor: string): string {
   const meio = digitos.length === 11 ? 5 : 4
   return `(${ddd}) ${resto.slice(0, meio)}-${resto.slice(meio)}`
 }
+
+/** Formata enquanto a pessoa digita: 00000-000. */
+export function mascaraCep(valor: string): string {
+  const digitos = valor.replace(/\D/g, '').slice(0, 8)
+  return digitos.length > 5 ? `${digitos.slice(0, 5)}-${digitos.slice(5)}` : digitos
+}

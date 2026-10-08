@@ -66,6 +66,13 @@ export function usuarioTeste(perfil: Perfil = 'COLABORADOR'): Usuario {
     nome: 'Ana Teste',
     email: 'ana@exemplo.com',
     telefone: null,
+    cep: '25651-000',
+    logradouro: 'Rua Afrânio de Melo Franco',
+    numero: '333',
+    complemento: null,
+    bairro: 'Quitandinha',
+    cidade: 'Petrópolis',
+    uf: 'RJ',
     perfil,
     status: 'ATIVO',
   }

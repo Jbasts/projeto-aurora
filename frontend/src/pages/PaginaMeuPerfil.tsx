@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
 import {
+  FormProvider,
   useForm,
   useWatch,
   type FieldValues,
@@ -17,6 +18,8 @@ import { mascaraTelefone } from '../components/formulario/mascaras'
 import { RequisitosSenha } from '../components/formulario/RequisitosSenha'
 import { TituloPagina } from '../components/TituloPagina'
 import { useAutenticacao, useUsuarioLogado } from '../contexts/autenticacao'
+import { CamposEndereco } from '../features/enderecos/CamposEndereco'
+import { enderecoInicial, NOMES_CAMPOS_ENDERECO } from '../features/enderecos/esquemas'
 import { useAtualizarMeusDados, useTrocarSenha } from '../features/usuarios/api'
 import {
   esquemaMeusDados,
@@ -75,15 +78,20 @@ function SecaoDados() {
   const atualizar = useAtualizarMeusDados()
   const [aviso, setAviso] = useState<Aviso>(null)
 
+  const formulario = useForm<DadosMeusDados>({
+    resolver: zodResolver(esquemaMeusDados),
+    defaultValues: {
+      nome: usuario.nome,
+      telefone: usuario.telefone ?? '',
+      ...enderecoInicial(usuario),
+    },
+  })
   const {
     register,
     handleSubmit,
     setError,
     formState: { errors },
-  } = useForm<DadosMeusDados>({
-    resolver: zodResolver(esquemaMeusDados),
-    defaultValues: { nome: usuario.nome, telefone: usuario.telefone ?? '' },
-  })
+  } = formulario
 
   const enviar = handleSubmit(async (dados) => {
     setAviso(null)
@@ -91,7 +99,7 @@ function SecaoDados() {
       atualizarUsuario(await atualizar.mutateAsync(dados))
       setAviso({ tipo: 'sucesso', texto: 'Dados atualizados.' })
     } catch (e) {
-      const geral = aplicarErrosDaApi(e, ['nome', 'telefone'], setError)
+      const geral = aplicarErrosDaApi(e, ['nome', 'telefone', ...NOMES_CAMPOS_ENDERECO], setError)
       if (geral) setAviso({ tipo: 'erro', texto: geral })
     }
   })
@@ -120,30 +128,33 @@ function SecaoDados() {
 
       {aviso && <Alerta tipo={aviso.tipo}>{aviso.texto}</Alerta>}
 
-      <form onSubmit={enviar} noValidate className="flex flex-col gap-4">
-        <CampoTexto
-          rotulo="Nome"
-          autoComplete="name"
-          erro={errors.nome?.message}
-          {...register('nome')}
-        />
-        <CampoTexto
-          rotulo="Telefone (opcional)"
-          type="tel"
-          autoComplete="tel-national"
-          inputMode="tel"
-          placeholder="(00) 00000-0000"
-          erro={errors.telefone?.message}
-          {...telefone}
-          onChange={(evento) => {
-            evento.target.value = mascaraTelefone(evento.target.value)
-            return telefone.onChange(evento)
-          }}
-        />
-        <Botao type="submit" carregando={atualizar.isPending} className="self-start">
-          Salvar dados
-        </Botao>
-      </form>
+      <FormProvider {...formulario}>
+        <form onSubmit={enviar} noValidate className="flex flex-col gap-4">
+          <CampoTexto
+            rotulo="Nome"
+            autoComplete="name"
+            erro={errors.nome?.message}
+            {...register('nome')}
+          />
+          <CampoTexto
+            rotulo="Telefone (opcional)"
+            type="tel"
+            autoComplete="tel-national"
+            inputMode="tel"
+            placeholder="(00) 00000-0000"
+            erro={errors.telefone?.message}
+            {...telefone}
+            onChange={(evento) => {
+              evento.target.value = mascaraTelefone(evento.target.value)
+              return telefone.onChange(evento)
+            }}
+          />
+          <CamposEndereco />
+          <Botao type="submit" carregando={atualizar.isPending} className="self-start">
+            Salvar dados
+          </Botao>
+        </form>
+      </FormProvider>
     </section>
   )
 }

@@ -216,8 +216,33 @@ describe('Meu perfil', () => {
     expect(chamadas.find((c) => c.chave === 'PATCH /me')?.corpo).toEqual({
       nome: 'Ana Nova',
       telefone: '(24) 99999-8888',
+      cep: '25651-000',
+      logradouro: 'Rua Afrânio de Melo Franco',
+      numero: '333',
+      complemento: '',
+      bairro: 'Quitandinha',
+      cidade: 'Petrópolis',
+      uf: 'RJ',
     })
     expect(screen.getByRole('button', { name: /Ana Nova/ })).toBeInTheDocument()
+  })
+
+  it('mostra o endereço e pede para completar quando a conta ainda não tem', async () => {
+    const pessoa = userEvent.setup()
+    const semEndereco = {
+      ...sessaoTeste('PADRAO'),
+      usuario: { ...usuarioTeste('PADRAO'), cep: null, logradouro: null, numero: null, uf: null },
+    }
+    const { chamadas } = mockarApi({ 'POST /auth/refresh': { corpo: semEndereco } })
+    renderizarApp('/meu-perfil')
+
+    expect(await screen.findByLabelText('Cidade')).toHaveValue('Petrópolis')
+    await pessoa.click(screen.getByRole('button', { name: 'Salvar dados' }))
+
+    expect(await screen.findByText(/Informe o CEP com 8 dígitos/)).toBeInTheDocument()
+    expect(screen.getByText('Informe a rua.')).toBeInTheDocument()
+    expect(screen.getByLabelText('UF')).toHaveAccessibleDescription('Escolha o estado (UF).')
+    expect(chamadas.map((c) => c.chave)).not.toContain('PATCH /me')
   })
 
   it('mostra no campo o erro de senha atual incorreta', async () => {

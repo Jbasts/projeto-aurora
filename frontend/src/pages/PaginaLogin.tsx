@@ -10,6 +10,7 @@ import { CampoSenha } from '../components/formulario/CampoSenha'
 import { CampoTexto } from '../components/formulario/CampoTexto'
 import { CartaoAutenticacao, estiloLink } from '../components/layout/CartaoAutenticacao'
 import { useAutenticacao } from '../contexts/autenticacao'
+import { ReenviarConfirmacao } from '../features/auth/ReenviarConfirmacao'
 import { esquemaLogin, type DadosLogin } from '../features/auth/esquemas'
 import { formatarMinutosSegundos, useContagemRegressiva } from '../hooks/useContagemRegressiva'
 import { useTituloDocumento } from '../hooks/useTituloDocumento'
@@ -20,6 +21,8 @@ export function PaginaLogin() {
   const { entrar } = useAutenticacao()
   const aviso = (useLocation().state as EstadoNavegacaoLogin | null)?.aviso
   const [erro, setErro] = useState<string | null>(null)
+  // Email da conta que ainda não confirmou o email: oferece reenviar o link.
+  const [emailNaoVerificado, setEmailNaoVerificado] = useState<string | null>(null)
   const bloqueio = useContagemRegressiva()
   // Minutos anunciados uma vez ao leitor de tela; o relógio visível muda a cada segundo.
   const [minutosBloqueio, setMinutosBloqueio] = useState(0)
@@ -33,10 +36,14 @@ export function PaginaLogin() {
   // Depois de entrar, <RotaSomenteAnonima> leva para a rota pedida antes do login.
   const enviar = handleSubmit(async ({ email, senha }) => {
     setErro(null)
+    setEmailNaoVerificado(null)
     try {
       await entrar(email, senha)
     } catch (e) {
-      if (e instanceof ErroApi && e.codigo === 'CONTA_BLOQUEADA') {
+      if (e instanceof ErroApi && e.codigo === 'EMAIL_NAO_VERIFICADO') {
+        setErro(e.message)
+        setEmailNaoVerificado(email.trim())
+      } else if (e instanceof ErroApi && e.codigo === 'CONTA_BLOQUEADA') {
         const segundos = Number(e.extras.segundos_restantes) || 300
         setMinutosBloqueio(Math.ceil(segundos / 60))
         bloqueio.iniciar(segundos)
@@ -50,6 +57,7 @@ export function PaginaLogin() {
     <CartaoAutenticacao titulo="Entrar">
       {aviso && !erro && !bloqueio.ativa && <Alerta tipo="sucesso">{aviso}</Alerta>}
       {erro && <Alerta tipo="erro">{erro}</Alerta>}
+      {emailNaoVerificado !== null && <ReenviarConfirmacao email={emailNaoVerificado} />}
       {bloqueio.ativa && (
         <Alerta tipo="erro">
           <span aria-hidden="true">

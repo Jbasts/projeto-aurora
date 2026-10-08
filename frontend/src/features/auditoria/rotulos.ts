@@ -6,6 +6,7 @@ export const ROTULOS_ACAO = {
   LOGIN_SUCESSO: 'Login realizado',
   LOGIN_FALHA: 'Falha no login',
   LOGIN_BLOQUEIO: 'Conta bloqueada por tentativas',
+  EMAIL_VERIFICADO: 'Email confirmado',
   USUARIO_APROVADO: 'Cadastro aprovado',
   USUARIO_RECUSADO: 'Cadastro recusado',
   USUARIO_INATIVADO: 'Usuário inativado',
@@ -32,6 +33,7 @@ const MOTIVOS_LOGIN: Record<string, string> = {
   SENHA_INCORRETA: 'senha incorreta',
   CONTA_BLOQUEADA: 'conta bloqueada no momento',
   TENTATIVAS_ESGOTADAS: 'tentativas esgotadas',
+  EMAIL_NAO_VERIFICADO: 'email ainda não confirmado',
   CONTA_PENDENTE: 'cadastro pendente de aprovação',
   CONTA_INATIVA: 'conta inativa',
 }

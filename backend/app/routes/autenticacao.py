@@ -15,6 +15,7 @@ from app.schemas.autenticacao import (
     MensagemSaida,
     RedefinirSenhaEntrada,
     SessaoSaida,
+    TokenEntrada,
     UsuarioSaida,
     ValidacaoTokenSaida,
 )
@@ -51,8 +52,32 @@ def logout(response: Response) -> None:
 
 @router.post("/cadastro", response_model=MensagemSaida, status_code=status.HTTP_201_CREATED)
 @limiter.limit(LIMITE_AUTH)
-def cadastro(request: Request, dados: CadastroEntrada, sessao: SessaoBanco) -> MensagemSaida:
-    return controller.cadastrar(sessao, dados)
+def cadastro(
+    request: Request,
+    dados: CadastroEntrada,
+    tarefas: BackgroundTasks,
+    sessao: SessaoBanco,
+    enviador: Annotated[EnviadorEmail, Depends(obter_enviador_email)],
+) -> MensagemSaida:
+    return controller.cadastrar(sessao, dados, tarefas, enviador)
+
+
+@router.post("/verificar-email", response_model=MensagemSaida)
+@limiter.limit(LIMITE_AUTH)
+def verificar_email(request: Request, dados: TokenEntrada, sessao: SessaoBanco) -> MensagemSaida:
+    return controller.verificar_email(sessao, dados, ip_da_requisicao(request))
+
+
+@router.post("/reenviar-verificacao", response_model=MensagemSaida)
+@limiter.limit(LIMITE_AUTH)
+def reenviar_verificacao(
+    request: Request,
+    dados: EmailEntrada,
+    tarefas: BackgroundTasks,
+    sessao: SessaoBanco,
+    enviador: Annotated[EnviadorEmail, Depends(obter_enviador_email)],
+) -> MensagemSaida:
+    return controller.reenviar_verificacao(sessao, dados, tarefas, enviador)
 
 
 @router.post("/recuperar-senha", response_model=MensagemSaida)

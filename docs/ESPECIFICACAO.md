@@ -34,7 +34,7 @@ O backend valida a permissão em toda rota. O frontend esconde menus, cards e bo
 2. O backend busca o usuário pelo email. Se não existir, executa uma verificação de hash "falsa" (para o tempo de resposta ser parecido) e responde `CREDENCIAIS_INVALIDAS` (401).
 3. Se `bloqueado_ate` for maior que agora, responde `CONTA_BLOQUEADA` (423) com `segundos_restantes`, sem verificar a senha.
 4. Senha errada: soma 1 em `tentativas_falhas` e responde `CREDENCIAIS_INVALIDAS`. Na 5ª falha seguida, define `bloqueado_ate = agora + 5 min`, zera o contador e responde `CONTA_BLOQUEADA`.
-5. Senha certa: zera o contador e verifica o status — `PENDENTE` → `CONTA_PENDENTE` (403); `INATIVO` → `CONTA_INATIVA` (403); `ATIVO` → login concluído.
+5. Senha certa: zera o contador; se o email ainda não foi confirmado → `EMAIL_NAO_VERIFICADO` (403, a tela oferece reenviar o link); senão verifica o status — `PENDENTE` → `CONTA_PENDENTE` (403); `INATIVO` → `CONTA_INATIVA` (403); `ATIVO` → login concluído.
 6. A mensagem de credenciais inválidas é sempre "Email ou senha incorretos." — nunca indicar qual dos dois está errado.
 7. Na tela, `CONTA_BLOQUEADA` mostra o alerta "Muitas tentativas. Tente novamente em 4:32" com contagem regressiva, e o botão Entrar fica desabilitado até zerar.
 8. Limites configuráveis por variável de ambiente (`MAX_TENTATIVAS_LOGIN=5`, `MINUTOS_BLOQUEIO=5`).
@@ -46,10 +46,13 @@ O backend valida a permissão em toda rota. O frontend esconde menus, cards e bo
 - Logout apaga o cookie de refresh.
 
 ### 3.3 Cadastro de conta
-- Aberto a qualquer pessoa. Campos: nome*, email*, telefone, senha*, confirmar senha*. **Não existe campo de perfil/cargo.**
+- Aberto a qualquer pessoa. Campos: nome*, email*, telefone, endereço (abaixo), senha*, confirmar senha*. **Não existe campo de perfil/cargo.**
+- Endereço: CEP*, rua*, número* (aceita "S/N"), complemento, bairro, cidade*, UF*. Ao digitar os 8 dígitos do CEP, o frontend consulta o ViaCEP (`https://viacep.com.br/ws/{cep}/json/`, direto do navegador) e preenche rua, bairro, cidade e UF, levando o foco para o número. CEP inexistente ou ViaCEP fora do ar: aviso no campo e preenchimento manual. O backend guarda o CEP como `00000-000` e a UF em maiúsculas.
 - Senha: mínimo de 8 caracteres, com pelo menos uma letra e um número. Os requisitos ficam visíveis abaixo do campo e são marcados conforme a pessoa digita.
 - Email já cadastrado: "Este email já está cadastrado. Faça login ou recupere sua senha."
-- A conta nasce com perfil `PADRAO` e status `PENDENTE`. Depois de enviar, a pessoa vê a tela "Cadastro enviado", explicando que uma pessoa administradora vai liberar o acesso.
+- A conta nasce com perfil `PADRAO`, status `PENDENTE` e email não confirmado. Depois de enviar, a pessoa vê a tela "Cadastro enviado", que pede para confirmar o email e explica que, depois, uma pessoa administradora vai liberar o acesso.
+- **Confirmação de email**: o cadastro envia um email com o link `{FRONTEND_URL}/verificar-email?token=...` (token como o da seção 3.4, com validade de 24 h e uso único; um novo envio invalida os anteriores). Abrir o link confirma o email (`POST /auth/verificar-email`) e gera auditoria `EMAIL_VERIFICADO`. "Reenviar email de confirmação" (telas Cadastro enviado, Confirmar email e Login) responde sempre a mesma mensagem e tem limite de 3 envios por hora. Redefinir a senha pelo link do email também confirma o email.
+- Ordem: confirmar o email → pessoa administradora aprova. Contas sem email confirmado não aparecem em Gerenciar usuários nem podem ser aprovadas (`EMAIL_NAO_VERIFICADO`). Contas criadas antes desta regra foram marcadas como confirmadas.
 - Somente ADMIN altera perfil e status.
 
 ### 3.4 Recuperar senha
@@ -66,7 +69,7 @@ O backend valida a permissão em toda rota. O frontend esconde menus, cards e bo
 - O primeiro ADMIN é criado pelo script `criar_admin`, com `ADMIN_EMAIL` e `ADMIN_SENHA` do `.env`.
 
 ### 3.6 Meu perfil
-- Para todas as pessoas logadas: ver e editar nome e telefone; trocar senha (pede a senha atual). Email e perfil de acesso aparecem só para leitura.
+- Para todas as pessoas logadas: ver e editar nome, telefone e endereço (obrigatório, com ViaCEP como no cadastro); trocar senha (pede a senha atual). Email e perfil de acesso aparecem só para leitura.
 
 ### 3.7 Pessoas em situação de rua
 
@@ -153,7 +156,7 @@ O PDF tem uma tela por página. Identifique cada uma pelo título que aparece na
 
 Em todas as telas logadas do protótipo: o item "Home" aparece sempre destacado no menu (deve destacar a página atual) e "Sair" é um botão verde primário (deve virar item do menu da pessoa, conforme a seção 5). Os verdes do protótipo são mais claros que os tokens da seção 5 — use os tokens.
 
-Telas sem protótipo (seguir a mesma identidade visual): Cadastro enviado, Gerenciar usuários, Meu perfil, Perfil da pessoa, Editar pessoa, Mapa de calor, Acesso negado (403), Erro inesperado (500), Privacidade e Logs de auditoria.
+Telas sem protótipo (seguir a mesma identidade visual): Cadastro enviado, Confirmar email, Gerenciar usuários, Meu perfil, Perfil da pessoa, Editar pessoa, Mapa de calor, Acesso negado (403), Erro inesperado (500), Privacidade e Logs de auditoria.
 
 ### 4.2 Rotas do frontend
 
@@ -162,6 +165,7 @@ Telas sem protótipo (seguir a mesma identidade visual): Cadastro enviado, Geren
 | `/login` | Login | pública |
 | `/cadastro` | Cadastro de conta | pública |
 | `/cadastro-enviado` | Confirmação do cadastro | pública |
+| `/verificar-email?token=` | Confirmar email | pública |
 | `/recuperar-senha` | Recuperar senha — etapa 1 | pública |
 | `/redefinir-senha?token=` | Recuperar senha — etapa 2 | pública |
 | `/link-expirado` | Token inválido | pública |
@@ -262,12 +266,17 @@ Extensões: `citext`, `unaccent`, `pg_trgm`. IDs em UUID. Datas em `timestamptz`
 
 **usuarios**
 - id, nome, email (citext, único), telefone, senha_hash (argon2)
+- cep, logradouro, numero, complemento, bairro, cidade, uf (nulos no banco: contas antigas e as criadas por script não têm)
+- email_verificado_em (nulo = email não confirmado)
 - perfil: enum `ADMIN | COLABORADOR | PADRAO` (padrão `PADRAO`)
 - status: enum `PENDENTE | ATIVO | INATIVO` (padrão `PENDENTE`)
 - tentativas_falhas (int, padrão 0), bloqueado_ate (nulo)
 - criado_em, atualizado_em
 
 **tokens_redefinicao_senha**
+- id, usuario_id → usuarios, token_hash (único), expira_em, usado_em (nulo), criado_em
+
+**tokens_verificacao_email**
 - id, usuario_id → usuarios, token_hash (único), expira_em, usado_em (nulo), criado_em
 
 **pessoas**
@@ -293,13 +302,15 @@ Extensões: `citext`, `unaccent`, `pg_trgm`. IDs em UUID. Datas em `timestamptz`
 ## 8. API (prefixo `/api/v1`)
 
 Formato de erro: `{"detail": "mensagem em pt-BR", "codigo": "CODIGO"}`, com campos extras quando fizer sentido (ex.: `segundos_restantes`).
-Códigos: `CREDENCIAIS_INVALIDAS`, `CONTA_BLOQUEADA`, `CONTA_PENDENTE`, `CONTA_INATIVA`, `TOKEN_INVALIDO`, `SEM_PERMISSAO`, `NAO_ENCONTRADO`, `VALIDACAO`, `ULTIMO_ADMIN`, `SEM_CONSENTIMENTO`.
+Códigos: `CREDENCIAIS_INVALIDAS`, `CONTA_BLOQUEADA`, `CONTA_PENDENTE`, `CONTA_INATIVA`, `TOKEN_INVALIDO`, `EMAIL_NAO_VERIFICADO`, `SEM_PERMISSAO`, `NAO_ENCONTRADO`, `VALIDACAO`, `ULTIMO_ADMIN`, `SEM_CONSENTIMENTO`.
 
 **Autenticação**
 - `POST /auth/login`
 - `POST /auth/refresh`
 - `POST /auth/logout`
 - `POST /auth/cadastro`
+- `POST /auth/verificar-email` (corpo: token)
+- `POST /auth/reenviar-verificacao` (corpo: email)
 - `POST /auth/recuperar-senha`
 - `GET /auth/redefinir-senha/validar?token=`
 - `POST /auth/redefinir-senha`
@@ -351,6 +362,8 @@ UPLOAD_DIR=./uploads
 ARQUIVOS_URL_SEGREDO=troque-isto-tambem
 MAX_TENTATIVAS_LOGIN=5
 MINUTOS_BLOQUEIO=5
+HORAS_VALIDADE_TOKEN_EMAIL=24
+MAX_REENVIOS_VERIFICACAO_POR_HORA=3
 NOMINATIM_USER_AGENT=ProjetoAurora/1.0 (contato@exemplo.com)
 ADMIN_EMAIL=admin@projetoaurora.local
 ADMIN_SENHA=TroqueEstaSenha1
@@ -373,6 +386,7 @@ Cada fase termina com lint e testes passando, um resumo do que foi feito e um ro
 ## 11. Decisões tomadas
 Estas decisões já foram aprovadas e valem sobre os protótipos:
 - Contas novas entram como `PENDENTE` e só acessam o sistema depois de aprovadas por uma pessoa administradora, para proteger os dados das PSDR.
+- Antes da aprovação, a pessoa confirma o email por link; o cadastro e o Meu perfil têm endereço obrigatório, preenchido pelo ViaCEP.
 - Consentimento obrigatório para enviar fotos; metadados EXIF sempre removidos.
 - Auditoria inclui a visualização do perfil de cada PSDR.
 - `idade_aproximada` no lugar de data de nascimento.

@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.entities import PerfilUsuario, StatusUsuario
 from app.schemas.autenticacao import ComConfirmacaoDeSenha
-from app.schemas.comum import Telefone, TextoAparado
+from app.schemas.comum import ComEndereco, Telefone, TextoAparado
 
 
 class UsuarioGestaoSaida(BaseModel):
@@ -44,7 +44,7 @@ class AlterarUsuarioEntrada(BaseModel):
         return self
 
 
-class MeuPerfilEntrada(BaseModel):
+class MeuPerfilEntrada(ComEndereco):
     nome: TextoAparado = Field(min_length=2, max_length=150)
     telefone: Telefone = None
 

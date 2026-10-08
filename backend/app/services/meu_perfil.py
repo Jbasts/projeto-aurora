@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.core.erros import ErroApi
 from app.core.seguranca import gerar_hash_senha, verificar_senha
 from app.entities import Usuario
+from app.schemas.comum import CAMPOS_ENDERECO
 from app.schemas.usuarios import MeuPerfilEntrada, TrocarSenhaEntrada
 from app.services import auditoria
 from app.services.auditoria import AcaoAuditoria
@@ -14,15 +15,17 @@ MENSAGEM_SENHA_ATUAL_INCORRETA = "Senha atual incorreta."
 def atualizar_dados(
     sessao: Session, usuario: Usuario, dados: MeuPerfilEntrada, ip: str | None
 ) -> Usuario:
-    """Nome e telefone. Email e perfil de acesso não mudam por aqui (seção 3.6)."""
+    """Nome, telefone e endereço. Email e perfil de acesso não mudam por aqui (seção 3.6)."""
     alterados = [
-        campo for campo in ("nome", "telefone") if getattr(dados, campo) != getattr(usuario, campo)
+        campo
+        for campo in ("nome", "telefone", *CAMPOS_ENDERECO)
+        if getattr(dados, campo) != getattr(usuario, campo)
     ]
     if not alterados:
         return usuario
 
-    usuario.nome = dados.nome
-    usuario.telefone = dados.telefone
+    for campo in alterados:
+        setattr(usuario, campo, getattr(dados, campo))
     # Só os nomes dos campos: os valores já ficam na própria tabela.
     auditoria.registrar(
         sessao,

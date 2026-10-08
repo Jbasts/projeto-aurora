@@ -23,3 +23,15 @@ def montar_email_redefinicao(
         ),
         texto=_carregar("redefinir_senha.txt").substitute(valores),
     )
+
+
+def montar_email_verificacao(destinatario: str, nome: str, link: str, horas_validade: int) -> Email:
+    valores = {"nome": nome, "link": link, "horas": str(horas_validade)}
+    return Email(
+        destinatario=destinatario,
+        assunto="Projeto Aurora — confirme seu email",
+        html=_carregar("verificar_email.html").substitute(
+            {chave: escape(valor) for chave, valor in valores.items()}
+        ),
+        texto=_carregar("verificar_email.txt").substitute(valores),
+    )

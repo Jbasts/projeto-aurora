@@ -1,5 +1,6 @@
 import logging
 import smtplib
+import ssl
 from collections.abc import Callable
 from dataclasses import dataclass
 from email.message import EmailMessage
@@ -30,6 +31,10 @@ def enviar_smtp(email: Email) -> None:
     mensagem.add_alternative(email.html, subtype="html")
 
     with smtplib.SMTP(configuracoes.SMTP_HOST, configuracoes.SMTP_PORT, timeout=10) as smtp:
+        if configuracoes.SMTP_STARTTLS:
+            smtp.starttls(context=ssl.create_default_context())
+        if configuracoes.SMTP_USUARIO:
+            smtp.login(configuracoes.SMTP_USUARIO, configuracoes.SMTP_SENHA)
         smtp.send_message(mensagem)
 
 

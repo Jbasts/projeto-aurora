@@ -22,6 +22,7 @@ import { PaginaPrivacidade } from '../pages/PaginaPrivacidade'
 import { PaginaRecuperarSenha } from '../pages/PaginaRecuperarSenha'
 import { PaginaRedefinirSenha } from '../pages/PaginaRedefinirSenha'
 import { PaginaUsuarios } from '../pages/PaginaUsuarios'
+import { PaginaVerificarEmail } from '../pages/PaginaVerificarEmail'
 import { RotaComPerfil, RotaProtegida, RotaSomenteAnonima } from './protecao'
 
 // Rotas da seção 4.2. Rotas por perfil usam <RotaComPerfil perfis={[...]} />.
@@ -35,6 +36,7 @@ export const rotas: RouteObject[] = [
       },
       { path: '/cadastro', element: <PaginaCadastro /> },
       { path: '/cadastro-enviado', element: <PaginaCadastroEnviado /> },
+      { path: '/verificar-email', element: <PaginaVerificarEmail /> },
       { path: '/recuperar-senha', element: <PaginaRecuperarSenha /> },
       { path: '/redefinir-senha', element: <PaginaRedefinirSenha /> },
     ],

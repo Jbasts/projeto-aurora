@@ -3,6 +3,7 @@ from sqlalchemy import select
 
 from app.core.seguranca import criar_token, verificar_senha
 from app.entities import LogAuditoria, PerfilUsuario, StatusUsuario
+from tests.conftest import ENDERECO
 
 USUARIOS = "/api/v1/usuarios"
 ME = "/api/v1/me"
@@ -67,7 +68,9 @@ class TestPermissoes:
     @pytest.mark.parametrize("perfil", [ADMIN, COLABORADOR, PADRAO])
     def test_meu_perfil_vale_para_todos_os_perfis(self, cliente, criar_usuario, perfil):
         usuario = criar_usuario(perfil=perfil)
-        resposta = cliente.patch(ME, json={"nome": "Nome Novo"}, headers=cabecalho(usuario))
+        resposta = cliente.patch(
+            ME, json={"nome": "Nome Novo", **ENDERECO}, headers=cabecalho(usuario)
+        )
         assert resposta.status_code == 200
 
     @pytest.mark.parametrize(
@@ -296,31 +299,54 @@ class TestMeuPerfil:
         usuario = criar_usuario(perfil=PADRAO)
         resposta = cliente.patch(
             ME,
-            json={"nome": "  Nome Novo ", "telefone": "24999998888"},
+            json={"nome": "  Nome Novo ", "telefone": "24999998888", **ENDERECO},
             headers=cabecalho(usuario),
         )
         assert resposta.status_code == 200
         assert resposta.json()["nome"] == "Nome Novo"
         assert resposta.json()["telefone"] == "(24) 99999-8888"
+        assert resposta.json()["cep"] == "25651-000"
+        assert resposta.json()["uf"] == "RJ"
         assert cliente.get(AUTH_ME, headers=cabecalho(usuario)).json()["nome"] == "Nome Novo"
 
         log = logs(sessao, "MEUS_DADOS")[0]
-        assert log.detalhes == {"campos": ["nome", "telefone"]}
+        # Só os nomes dos campos; complemento continua vazio e não entra.
+        assert log.detalhes == {
+            "campos": ["nome", "telefone", "cep", "logradouro", "numero", "bairro", "cidade", "uf"]
+        }
+
+    def test_endereco_e_obrigatorio(self, cliente, criar_usuario):
+        usuario = criar_usuario()
+        resposta = cliente.patch(ME, json={"nome": "Nome Novo"}, headers=cabecalho(usuario))
+        assert resposta.status_code == 422
+        assert {c["campo"] for c in resposta.json()["campos"]} == {
+            "cep",
+            "logradouro",
+            "numero",
+            "cidade",
+            "uf",
+        }
 
     def test_ignora_email_e_perfil(self, cliente, criar_usuario, sessao):
         usuario = criar_usuario(perfil=PADRAO)
-        cliente.patch(
+        resposta = cliente.patch(
             ME,
-            json={"nome": "Pessoa de Teste", "email": "x@exemplo.com", "perfil": "ADMIN"},
+            json={
+                "nome": "Pessoa de Teste",
+                "email": "x@exemplo.com",
+                "perfil": "ADMIN",
+                **ENDERECO,
+            },
             headers=cabecalho(usuario),
         )
+        assert resposta.status_code == 200
         sessao.refresh(usuario)
         assert (usuario.email, usuario.perfil) == ("pessoa@exemplo.com", PADRAO)
 
     def test_valida_nome_e_telefone(self, cliente, criar_usuario):
         usuario = criar_usuario()
         resposta = cliente.patch(
-            ME, json={"nome": " ", "telefone": "123"}, headers=cabecalho(usuario)
+            ME, json={"nome": " ", "telefone": "123", **ENDERECO}, headers=cabecalho(usuario)
         )
         assert resposta.status_code == 422
         assert {c["campo"] for c in resposta.json()["campos"]} == {"nome", "telefone"}

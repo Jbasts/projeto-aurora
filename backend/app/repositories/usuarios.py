@@ -45,8 +45,11 @@ def listar(
     pagina: int,
     tamanho: int,
 ) -> tuple[list[Usuario], int]:
-    """Pendentes primeiro, depois por nome. Busca por nome (sem acento) ou email."""
-    filtros = []
+    """Pendentes primeiro, depois por nome. Busca por nome (sem acento) ou email.
+
+    Contas com o email ainda não confirmado ficam de fora: não podem ser aprovadas.
+    """
+    filtros = [Usuario.email_verificado_em.is_not(None)]
     if busca:
         padrao = f"%{_escapar_like(busca)}%"
         filtros.append(

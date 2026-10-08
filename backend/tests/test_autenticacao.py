@@ -13,6 +13,7 @@ from app.core.permissoes import exigir_perfil
 from app.core.seguranca import criar_token, verificar_senha
 from app.db.sessao import obter_sessao
 from app.entities import LogAuditoria, PerfilUsuario, StatusUsuario, Usuario
+from tests.conftest import ENDERECO
 
 LOGIN = "/api/v1/auth/login"
 REFRESH = "/api/v1/auth/refresh"
@@ -259,18 +260,47 @@ class TestCadastro:
         "telefone": "24988887777",
         "senha": "SenhaBoa123",
         "confirmar_senha": "SenhaBoa123",
+        **ENDERECO,
     }
 
     def test_cria_conta_padrao_e_pendente(self, cliente, sessao):
         resposta = cliente.post(CADASTRO, json=self.DADOS)
         assert resposta.status_code == 201
-        assert "pessoa administradora" in resposta.json()["mensagem"]
+        assert "Confirme seu email" in resposta.json()["mensagem"]
 
         usuario = sessao.scalar(select(Usuario).where(Usuario.email == "ana.souza@exemplo.com"))
         assert usuario.perfil == PerfilUsuario.PADRAO
         assert usuario.status == StatusUsuario.PENDENTE
+        assert usuario.email_verificado_em is None
         assert usuario.telefone == "(24) 98888-7777"
         assert verificar_senha("SenhaBoa123", usuario.senha_hash)
+
+    def test_guarda_o_endereco_normalizado(self, cliente, sessao):
+        cliente.post(CADASTRO, json=self.DADOS)
+        usuario = sessao.scalar(select(Usuario))
+        assert (
+            usuario.cep,
+            usuario.logradouro,
+            usuario.numero,
+            usuario.complemento,
+            usuario.bairro,
+            usuario.cidade,
+            usuario.uf,
+        ) == (
+            "25651-000",
+            "Rua Afrânio de Melo Franco",
+            "333",
+            None,
+            "Quitandinha",
+            "Petrópolis",
+            "RJ",
+        )
+
+    def test_envia_email_de_confirmacao(self, cliente, emails_enviados):
+        cliente.post(CADASTRO, json=self.DADOS)
+        assert len(emails_enviados) == 1
+        assert emails_enviados[0].destinatario == "ana.souza@exemplo.com"
+        assert "/verificar-email?token=" in emails_enviados[0].texto
 
     def test_ignora_tentativa_de_escolher_perfil(self, cliente, sessao):
         cliente.post(CADASTRO, json={**self.DADOS, "perfil": "ADMIN", "status": "ATIVO"})
@@ -299,6 +329,12 @@ class TestCadastro:
             ({"email": "nao-e-email"}, "email"),
             ({"telefone": "123"}, "telefone"),
             ({"nome": " "}, "nome"),
+            ({"cep": "2565100"}, "cep"),
+            ({"cep": ""}, "cep"),
+            ({"logradouro": " "}, "logradouro"),
+            ({"numero": ""}, "numero"),
+            ({"cidade": ""}, "cidade"),
+            ({"uf": "XX"}, "uf"),
         ],
     )
     def test_validacoes(self, cliente, alteracao, campo):

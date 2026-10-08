@@ -14,6 +14,7 @@ Os protótipos estão em `docs/telas.pdf` (uma tela por página; identifique cad
 (Mantenha esta seção atualizada conforme o projeto evoluir.)
 - Configuração inicial: copiar `backend/.env.example` para `backend/.env` e preencher a senha do banco; `cd backend && py -3.12 -m venv .venv && .venv\Scripts\pip install -r requirements.txt`; `cd frontend && npm install`
 - Email de teste: `podman machine start` (uma vez por sessão) e `podman compose up -d` (Mailpit em http://localhost:8025)
+- Email de verdade (Gmail): em `backend/.env`, `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_STARTTLS=true`, `SMTP_USUARIO`/`SMTP_REMETENTE` com a conta e `SMTP_SENHA` com uma senha de app do Google (exemplo comentado no `.env.example`); reinicie o backend
 - Backend (venv em `backend/.venv`; use `.venv\Scripts\` antes dos comandos ou ative o venv): `cd backend && alembic upgrade head && uvicorn app.main:app --reload` (API em http://localhost:8000/api/v1, docs em /docs)
 - Primeiro admin: `cd backend && python -m app.scripts.criar_admin`
 - Dados fictícios: `cd backend && python -m app.scripts.seed_dev` (só roda com o banco sem pessoas; cria contas de teste `*@projetoaurora.local` com senha `Senha12345`)

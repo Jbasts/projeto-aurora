@@ -14,6 +14,33 @@ export function useCadastrar() {
   })
 }
 
+/** Reenvia o link de confirmação. A resposta é sempre a mesma (não revela se o email existe). */
+export function useReenviarVerificacao() {
+  return useMutation({
+    mutationFn: (email: string) =>
+      requisitar<MensagemResposta>('/auth/reenviar-verificacao', {
+        metodo: 'POST',
+        corpo: { email },
+      }),
+  })
+}
+
+/**
+ * Confirma o email ao abrir o link. É um POST, mas fica numa query: assim a confirmação roda
+ * uma única vez por token, mesmo com a montagem dupla do StrictMode (o token é de uso único).
+ */
+export function useVerificarEmail(token: string) {
+  return useQuery({
+    queryKey: ['auth', 'verificar-email', token],
+    queryFn: () =>
+      requisitar<MensagemResposta>('/auth/verificar-email', { metodo: 'POST', corpo: { token } }),
+    enabled: token.length > 0,
+    retry: false,
+    staleTime: Infinity,
+    gcTime: Infinity,
+  })
+}
+
 export function useSolicitarRecuperacao() {
   return useMutation({
     mutationFn: (dados: DadosRecuperarSenha) =>

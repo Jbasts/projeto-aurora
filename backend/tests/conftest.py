@@ -5,6 +5,7 @@ Cada teste roda dentro de uma transação desfeita ao final, então os dados nã
 """
 
 from collections.abc import Callable, Iterator
+from datetime import UTC, datetime
 
 import pytest
 from alembic import command
@@ -21,6 +22,17 @@ from app.entities import PerfilUsuario, StatusUsuario, Usuario
 from app.main import app
 from app.services.email import Email, obter_enviador_email
 from app.services.geocodificacao import obter_geocodificador
+
+# Endereço válido para cadastro e Meu perfil.
+ENDERECO = {
+    "cep": "25651000",
+    "logradouro": "Rua Afrânio de Melo Franco",
+    "numero": "333",
+    "complemento": "",
+    "bairro": "Quitandinha",
+    "cidade": "Petrópolis",
+    "uf": "rj",
+}
 
 URL_TESTE = make_url(obter_configuracoes().DATABASE_URL)
 URL_TESTE = URL_TESTE.set(database=f"{URL_TESTE.database}_teste")
@@ -115,6 +127,7 @@ def criar_usuario(sessao: Session) -> Callable[..., Usuario]:
         perfil: PerfilUsuario = PerfilUsuario.COLABORADOR,
         status: StatusUsuario = StatusUsuario.ATIVO,
         nome: str = "Pessoa de Teste",
+        email_verificado: bool = True,
     ) -> Usuario:
         usuario = Usuario(
             nome=nome,
@@ -122,6 +135,7 @@ def criar_usuario(sessao: Session) -> Callable[..., Usuario]:
             senha_hash=gerar_hash_senha(senha),
             perfil=perfil,
             status=status,
+            email_verificado_em=datetime.now(UTC) if email_verificado else None,
         )
         sessao.add(usuario)
         sessao.flush()

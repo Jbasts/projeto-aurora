@@ -39,6 +39,12 @@ def alterar(
     usuario = repositorio_usuarios.buscar_por_id_para_alterar(sessao, usuario_id)
     if usuario is None:
         raise ErroApi(status.HTTP_404_NOT_FOUND, "NAO_ENCONTRADO", "Usuário não encontrado.")
+    if usuario.email_verificado_em is None:
+        raise ErroApi(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "EMAIL_NAO_VERIFICADO",
+            "Esta conta ainda não confirmou o email.",
+        )
 
     novo_perfil = dados.perfil or usuario.perfil
     novo_status = dados.status or usuario.status

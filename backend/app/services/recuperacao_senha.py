@@ -82,6 +82,9 @@ def redefinir(sessao: Session, token: str, nova_senha: str, agora: datetime | No
     usuario.senha_hash = gerar_hash_senha(nova_senha)
     usuario.tentativas_falhas = 0
     usuario.bloqueado_ate = None
+    # O link chegou na caixa de entrada da pessoa: isso também confirma o email.
+    if usuario.email_verificado_em is None:
+        usuario.email_verificado_em = agora
     # Uso único: este e qualquer outro token pendente deixam de valer.
     repositorio_tokens.invalidar_pendentes(sessao, usuario.id, agora)
     sessao.commit()

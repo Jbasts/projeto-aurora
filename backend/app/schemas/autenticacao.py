@@ -4,7 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 
 from app.entities import PerfilUsuario, StatusUsuario
-from app.schemas.comum import EmailValido, SenhaForte, Telefone, TextoAparado
+from app.schemas.comum import ComEndereco, EmailValido, SenhaForte, Telefone, TextoAparado
 
 
 class UsuarioSaida(BaseModel):
@@ -14,6 +14,13 @@ class UsuarioSaida(BaseModel):
     nome: str
     email: str
     telefone: str | None
+    cep: str | None
+    logradouro: str | None
+    numero: str | None
+    complemento: str | None
+    bairro: str | None
+    cidade: str | None
+    uf: str | None
     perfil: PerfilUsuario
     status: StatusUsuario
 
@@ -42,13 +49,13 @@ class ComConfirmacaoDeSenha(BaseModel):
         return valor
 
 
-class CadastroEntrada(ComConfirmacaoDeSenha):
+class CadastroEntrada(ComConfirmacaoDeSenha, ComEndereco):
     """Cadastro aberto. Não existe campo de perfil: a conta nasce PADRAO e PENDENTE."""
 
     nome: TextoAparado = Field(min_length=2, max_length=150)
     email: EmailValido
     telefone: Telefone = None
-    # senha e confirmar_senha vêm de ComConfirmacaoDeSenha
+    # senha e confirmar_senha vêm de ComConfirmacaoDeSenha; o endereço, de ComEndereco
 
 
 class EmailEntrada(BaseModel):
@@ -56,6 +63,10 @@ class EmailEntrada(BaseModel):
 
 
 class RedefinirSenhaEntrada(ComConfirmacaoDeSenha):
+    token: str = Field(max_length=128)
+
+
+class TokenEntrada(BaseModel):
     token: str = Field(max_length=128)
 
 

@@ -13,18 +13,21 @@ from app.schemas.autenticacao import (
     MensagemSaida,
     RedefinirSenhaEntrada,
     SessaoSaida,
+    TokenEntrada,
     UsuarioSaida,
     ValidacaoTokenSaida,
 )
 from app.services import autenticacao as servico_autenticacao
 from app.services import recuperacao_senha as servico_recuperacao
+from app.services import verificacao_email as servico_verificacao
 from app.services.email import EnviadorEmail, enviar_sem_falhar
 
 COOKIE_REFRESH = "aurora_refresh"
 CAMINHO_COOKIE = "/api/v1/auth"
 
 MENSAGEM_CADASTRO_ENVIADO = (
-    "Cadastro enviado. Uma pessoa administradora vai analisar e liberar seu acesso."
+    "Cadastro enviado. Confirme seu email pelo link que enviamos; depois, "
+    "uma pessoa administradora vai analisar e liberar seu acesso."
 )
 
 
@@ -64,9 +67,26 @@ def sair(resposta: Response) -> None:
     resposta.delete_cookie(COOKIE_REFRESH, **_parametros_cookie())
 
 
-def cadastrar(sessao: Session, dados: CadastroEntrada) -> MensagemSaida:
-    servico_autenticacao.cadastrar(sessao, dados)
+def cadastrar(
+    sessao: Session, dados: CadastroEntrada, tarefas: BackgroundTasks, enviador: EnviadorEmail
+) -> MensagemSaida:
+    _, email = servico_autenticacao.cadastrar(sessao, dados)
+    tarefas.add_task(enviar_sem_falhar, enviador, email)
     return MensagemSaida(mensagem=MENSAGEM_CADASTRO_ENVIADO)
+
+
+def reenviar_verificacao(
+    sessao: Session, dados: EmailEntrada, tarefas: BackgroundTasks, enviador: EnviadorEmail
+) -> MensagemSaida:
+    email = servico_verificacao.reenviar(sessao, dados.email)
+    if email is not None:
+        tarefas.add_task(enviar_sem_falhar, enviador, email)
+    return MensagemSaida(mensagem=servico_verificacao.MENSAGEM_REENVIO)
+
+
+def verificar_email(sessao: Session, dados: TokenEntrada, ip: str | None) -> MensagemSaida:
+    servico_verificacao.confirmar(sessao, dados.token, ip)
+    return MensagemSaida(mensagem=servico_verificacao.MENSAGEM_EMAIL_CONFIRMADO)
 
 
 def solicitar_recuperacao(

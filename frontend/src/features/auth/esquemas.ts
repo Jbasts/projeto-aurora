@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { camposEndereco } from '../enderecos/esquemas'
+
 // Espelham as validações do backend (app/schemas/comum.py e app/schemas/autenticacao.py).
 
 export const REQUISITOS_SENHA = [
@@ -44,6 +46,7 @@ export const esquemaCadastro = z
     telefone,
     senha: senhaForte,
     confirmar_senha: z.string(),
+    ...camposEndereco,
   })
   .refine((d) => d.senha === d.confirmar_senha, {
     message: MENSAGEM_SENHAS_DIFERENTES,

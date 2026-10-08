@@ -93,6 +93,16 @@ CONTAS_TESTE = [
      StatusUsuario.INATIVO),
 ]  # fmt: skip
 
+# Endereço do próprio projeto (rodapé), igual para todas as contas de teste.
+ENDERECO_CONTAS_TESTE = {
+    "cep": "25651-000",
+    "logradouro": "Rua Afrânio de Melo Franco",
+    "numero": "333",
+    "bairro": "Quitandinha",
+    "cidade": "Petrópolis",
+    "uf": "RJ",
+}
+
 
 class BancoJaPopuladoError(RuntimeError):
     pass
@@ -119,7 +129,15 @@ def _criar_contas(sessao: Session) -> list[Usuario]:
     for nome, email, perfil, status in CONTAS_TESTE:
         if sessao.scalar(select(Usuario).where(Usuario.email == email)) is None:
             sessao.add(
-                Usuario(nome=nome, email=email, senha_hash=senha_hash, perfil=perfil, status=status)
+                Usuario(
+                    nome=nome,
+                    email=email,
+                    senha_hash=senha_hash,
+                    perfil=perfil,
+                    status=status,
+                    email_verificado_em=datetime.now(UTC),
+                    **ENDERECO_CONTAS_TESTE,
+                )
             )
     sessao.flush()
     return list(

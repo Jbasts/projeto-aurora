@@ -17,12 +17,18 @@ class Configuracoes(BaseSettings):
     SMTP_HOST: str = "localhost"
     SMTP_PORT: int = 1025
     SMTP_REMETENTE: str = "nao-responda@projetoaurora.local"
+    # Vazios no Mailpit. No Gmail: a conta e uma "senha de app" (exige verificação em 2 etapas).
+    SMTP_USUARIO: str = ""
+    SMTP_SENHA: str = ""
+    SMTP_STARTTLS: bool = False
     UPLOAD_DIR: str = "./uploads"
     ARQUIVOS_URL_SEGREDO: str = "troque-isto-tambem"
     MAX_TENTATIVAS_LOGIN: int = 5
     MINUTOS_BLOQUEIO: int = 5
     MINUTOS_VALIDADE_TOKEN_SENHA: int = 30
     MAX_PEDIDOS_RECUPERACAO_POR_HORA: int = 3
+    HORAS_VALIDADE_TOKEN_EMAIL: int = 24
+    MAX_REENVIOS_VERIFICACAO_POR_HORA: int = 3
     LIMITE_REQUISICOES_AUTH: str = "30/minute"
     NOMINATIM_USER_AGENT: str = "ProjetoAurora/1.0 (contato@exemplo.com)"
     ADMIN_EMAIL: str = "admin@projetoaurora.local"

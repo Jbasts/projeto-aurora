@@ -2,7 +2,7 @@ import re
 from typing import Annotated
 
 from email_validator import EmailNotValidError, validate_email
-from pydantic import AfterValidator, BeforeValidator, Field
+from pydantic import AfterValidator, BaseModel, BeforeValidator, Field
 
 from app.core.config import obter_configuracoes
 from app.core.seguranca import normalizar_email, senha_atende_requisitos
@@ -53,11 +53,54 @@ def formatar_telefone(valor: str | None) -> str | None:
     raise ValueError("Informe o telefone com DDD, no formato (00) 00000-0000.")
 
 
+def formatar_cep(valor: str) -> str:
+    """Aceita com ou sem traço e devolve 00000-000."""
+    digitos = re.sub(r"\D", "", valor)
+    if len(digitos) != 8:
+        raise ValueError("Informe o CEP com 8 dígitos, no formato 00000-000.")
+    return f"{digitos[:5]}-{digitos[5:]}"
+
+
+UFS = frozenset(
+    "AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO".split()
+)
+
+
+def validar_uf(valor: str) -> str:
+    valor = valor.upper()
+    if valor not in UFS:
+        raise ValueError("Escolha o estado (UF).")
+    return valor
+
+
 def _aparar(valor: object) -> object:
     return valor.strip() if isinstance(valor, str) else valor
+
+
+def _vazio_para_nulo(valor: object) -> object:
+    valor = _aparar(valor)
+    return valor or None
 
 
 TextoAparado = Annotated[str, BeforeValidator(_aparar)]
 EmailValido = Annotated[str, Field(max_length=254), AfterValidator(validar_email)]
 SenhaForte = Annotated[str, Field(max_length=128), AfterValidator(validar_senha)]
 Telefone = Annotated[str | None, Field(max_length=20), AfterValidator(formatar_telefone)]
+Cep = Annotated[str, BeforeValidator(_aparar), Field(max_length=9), AfterValidator(formatar_cep)]
+Uf = Annotated[str, BeforeValidator(_aparar), Field(max_length=2), AfterValidator(validar_uf)]
+TextoOpcional = Annotated[str | None, BeforeValidator(_vazio_para_nulo)]
+
+
+class ComEndereco(BaseModel):
+    """Endereço da conta. O frontend preenche logradouro, bairro, cidade e UF pelo ViaCEP."""
+
+    cep: Cep
+    logradouro: TextoAparado = Field(min_length=2, max_length=200)
+    numero: TextoAparado = Field(min_length=1, max_length=20)
+    complemento: TextoOpcional = Field(default=None, max_length=100)
+    bairro: TextoOpcional = Field(default=None, max_length=100)
+    cidade: TextoAparado = Field(min_length=2, max_length=100)
+    uf: Uf
+
+
+CAMPOS_ENDERECO = tuple(ComEndereco.model_fields)

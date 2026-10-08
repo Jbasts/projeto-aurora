@@ -17,8 +17,10 @@ from app.core.seguranca import (
 from app.entities import PerfilUsuario, StatusUsuario, Usuario
 from app.repositories import usuarios as repositorio_usuarios
 from app.schemas.autenticacao import CadastroEntrada
-from app.services import auditoria
+from app.schemas.comum import CAMPOS_ENDERECO
+from app.services import auditoria, verificacao_email
 from app.services.auditoria import AcaoAuditoria
+from app.services.email import Email
 
 MENSAGEM_CREDENCIAIS_INVALIDAS = "Email ou senha incorretos."
 MENSAGEM_EMAIL_JA_CADASTRADO = "Este email já está cadastrado. Faça login ou recupere sua senha."
@@ -90,6 +92,18 @@ def autenticar(
     usuario.tentativas_falhas = 0
     usuario.bloqueado_ate = None
 
+    if usuario.email_verificado_em is None:
+        raise falhar(
+            ErroApi(
+                status.HTTP_403_FORBIDDEN,
+                "EMAIL_NAO_VERIFICADO",
+                "Confirme seu email para continuar. "
+                "Enviamos um link de confirmação quando você se cadastrou.",
+            ),
+            AcaoAuditoria.LOGIN_FALHA,
+            usuario,
+            "EMAIL_NAO_VERIFICADO",
+        )
     if usuario.status == StatusUsuario.PENDENTE:
         raise falhar(
             ErroApi(
@@ -146,7 +160,8 @@ def _email_ja_cadastrado() -> ErroApi:
     )
 
 
-def cadastrar(sessao: Session, dados: CadastroEntrada) -> Usuario:
+def cadastrar(sessao: Session, dados: CadastroEntrada) -> tuple[Usuario, Email]:
+    """Cria a conta (PADRAO, PENDENTE, email não confirmado) e o email de confirmação."""
     if repositorio_usuarios.buscar_por_email(sessao, dados.email) is not None:
         raise _email_ja_cadastrado()
     try:
@@ -159,10 +174,12 @@ def cadastrar(sessao: Session, dados: CadastroEntrada) -> Usuario:
                 senha_hash=gerar_hash_senha(dados.senha),
                 perfil=PerfilUsuario.PADRAO,
                 status=StatusUsuario.PENDENTE,
+                **{campo: getattr(dados, campo) for campo in CAMPOS_ENDERECO},
             ),
         )
+        email = verificacao_email.gerar_email(sessao, usuario)
         sessao.commit()
     except IntegrityError as erro:  # cadastro simultâneo com o mesmo email
         sessao.rollback()
         raise _email_ja_cadastrado() from erro
-    return usuario
+    return usuario, email
