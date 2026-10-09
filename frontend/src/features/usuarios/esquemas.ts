@@ -3,6 +3,7 @@ import { z } from 'zod'
 import {
   celular,
   cpfValido,
+  dataNascimento,
   MENSAGEM_SENHAS_DIFERENTES,
   senhaForte,
   sobrenome,
@@ -14,6 +15,7 @@ import { camposEndereco } from '../enderecos/esquemas'
 export const esquemaMeusDados = z.object({
   nome: z.string().trim().min(2, 'Informe seu nome.').max(150, 'Use no máximo 150 caracteres.'),
   sobrenome,
+  data_nascimento: dataNascimento,
   telefone: celular,
   ...camposEndereco,
 })

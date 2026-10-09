@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { calcularIdade, hojeNoCampoData } from '../comum/datas'
 import { camposEndereco } from '../enderecos/esquemas'
 
 // Espelham as validações do backend (app/schemas/comum.py e app/schemas/autenticacao.py).
@@ -61,6 +62,14 @@ export function cpfValido(valor: string): boolean {
 
 const cpf = z.string().trim().refine(cpfValido, 'Informe um CPF válido.')
 
+/** Mesmas regras de app/schemas/comum.py: não pode ser no futuro nem passar de 120 anos. */
+export const dataNascimento = z
+  .string()
+  .min(1, 'Informe sua data de nascimento.')
+  .refine((d) => calcularIdade(d) !== null, 'Informe uma data válida.')
+  .refine((d) => d <= hojeNoCampoData(), 'A data de nascimento não pode ser no futuro.')
+  .refine((d) => (calcularIdade(d) ?? 0) <= 120, 'Confira a data de nascimento.')
+
 /** Email ou CPF (login e recuperação de senha). */
 export function emailOuCpfValido(valor: string): boolean {
   const texto = valor.trim()
@@ -88,6 +97,7 @@ export const esquemaCadastro = z
     nome: z.string().trim().min(2, 'Informe seu nome.').max(150, 'Use no máximo 150 caracteres.'),
     sobrenome,
     cpf,
+    data_nascimento: dataNascimento,
     email,
     telefone: celular,
     foto: fotoConta,

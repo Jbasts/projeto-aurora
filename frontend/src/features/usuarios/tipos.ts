@@ -20,6 +20,8 @@ export interface UsuarioGestao {
 
 /** Tela Dados do usuário (somente ADMIN). */
 export interface UsuarioDetalhe extends UsuarioGestao {
+  data_nascimento: string | null
+  idade: number | null
   cep: string | null
   logradouro: string | null
   numero: string | null

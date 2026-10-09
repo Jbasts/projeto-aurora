@@ -44,7 +44,7 @@ def atualizar_dados(
     """Nome, sobrenome, celular e endereço. CPF, email e perfil não mudam por aqui (seção 3.6)."""
     alterados = [
         campo
-        for campo in ("nome", "sobrenome", "telefone", *CAMPOS_ENDERECO)
+        for campo in ("nome", "sobrenome", "data_nascimento", "telefone", *CAMPOS_ENDERECO)
         if getattr(dados, campo) != getattr(usuario, campo)
     ]
     if not alterados:

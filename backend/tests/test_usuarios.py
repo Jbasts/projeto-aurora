@@ -319,6 +319,7 @@ class TestMeuPerfil:
             "campos": [
                 "nome",
                 "sobrenome",
+                "data_nascimento",
                 "telefone",
                 "cep",
                 "logradouro",
@@ -335,6 +336,7 @@ class TestMeuPerfil:
         assert resposta.status_code == 422
         assert {c["campo"] for c in resposta.json()["campos"]} == {
             "sobrenome",
+            "data_nascimento",
             "telefone",
             "cep",
             "logradouro",

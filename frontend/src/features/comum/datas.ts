@@ -45,3 +45,30 @@ export function limiteDoDia(valor: string, fim: boolean): string | null {
   const data = fim ? new Date(ano, mes - 1, dia, 23, 59, 59, 999) : new Date(ano, mes - 1, dia)
   return data.toISOString()
 }
+
+// --- Data de nascimento ("AAAA-MM-DD", sem horário: nada de fuso) ---
+
+/** Hoje como "AAAA-MM-DD" (limite do campo de data de nascimento). */
+export function hojeNoCampoData(): string {
+  return paraCampoData(new Date())
+}
+
+/** Anos completos em `hoje`; null se a data estiver vazia ou incompleta. Igual ao backend. */
+export function calcularIdade(nascimento: string, hoje: Date = new Date()): number | null {
+  const [ano, mes, dia] = nascimento.split('-').map(Number)
+  if (!ano || !mes || !dia || ano < 1000) return null
+  const fezAniversario =
+    hoje.getMonth() + 1 > mes || (hoje.getMonth() + 1 === mes && hoje.getDate() >= dia)
+  return hoje.getFullYear() - ano - (fezAniversario ? 0 : 1)
+}
+
+/** Ex.: "1 ano", "36 anos". */
+export function textoIdade(idade: number): string {
+  return `${idade} ${idade === 1 ? 'ano' : 'anos'}`
+}
+
+/** "1990-05-20" → "20/05/1990". */
+export function formatarDataSimples(valor: string): string {
+  const [ano, mes, dia] = valor.split('-')
+  return `${dia}/${mes}/${ano}`
+}

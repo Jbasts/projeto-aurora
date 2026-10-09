@@ -12,7 +12,12 @@ import { mascaraCpf } from '../components/formulario/mascaras'
 import { Modal } from '../components/Modal'
 import { TelaCarregando } from '../components/TelaCarregando'
 import { TituloPagina } from '../components/TituloPagina'
-import { formatarData, formatarDataHora } from '../features/comum/datas'
+import {
+  formatarData,
+  formatarDataHora,
+  formatarDataSimples,
+  textoIdade,
+} from '../features/comum/datas'
 import {
   ROTULOS_STATUS_SOLICITACAO,
   ROTULOS_TIPO_SOLICITACAO,
@@ -100,6 +105,10 @@ function DadosUsuario({ usuario }: { usuario: UsuarioDetalhe }) {
               <Item rotulo="Nome">{usuario.nome}</Item>
               <Item rotulo="Sobrenome">{usuario.sobrenome}</Item>
               <Item rotulo="CPF">{usuario.cpf}</Item>
+              <Item rotulo="Data de nascimento">
+                {usuario.data_nascimento && formatarDataSimples(usuario.data_nascimento)}
+              </Item>
+              <Item rotulo="Idade">{usuario.idade !== null && textoIdade(usuario.idade)}</Item>
             </Lista>
             {faltaDado && (
               <div className="flex flex-col gap-2">

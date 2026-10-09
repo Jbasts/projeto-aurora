@@ -10,7 +10,7 @@ Uso: cd backend && python -m app.scripts.seed_dev
 import random
 import sys
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 from faker import Faker
@@ -124,6 +124,16 @@ def _telefone(aleatorio: random.Random) -> str:
     return f"(24) 9{aleatorio.randint(8000, 9999)}-{aleatorio.randint(0, 9999):04d}"
 
 
+def _nascimento(aleatorio: random.Random) -> date:
+    """Data fictícia de uma pessoa adulta (18 a 70 anos)."""
+    hoje = date.today()
+    return date(
+        aleatorio.randint(hoje.year - 70, hoje.year - 19),
+        aleatorio.randint(1, 12),
+        aleatorio.randint(1, 28),
+    )
+
+
 def _cpf(aleatorio: random.Random) -> str:
     """CPF fictício com dígitos verificadores válidos (só os 11 dígitos)."""
     base = "".join(str(aleatorio.randint(0, 9)) for _ in range(9))
@@ -147,6 +157,7 @@ def _criar_contas(sessao: Session) -> list[Usuario]:
                     sobrenome="Fictícia",
                     cpf=_cpf(aleatorio),
                     telefone=_telefone(aleatorio),
+                    data_nascimento=_nascimento(aleatorio),
                     **ENDERECO_CONTAS_TESTE,
                 )
             )

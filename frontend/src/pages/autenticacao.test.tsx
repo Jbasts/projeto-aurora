@@ -115,6 +115,7 @@ describe('Cadastro', () => {
     await usuario.type(await screen.findByLabelText('Nome'), 'Ana')
     await usuario.type(screen.getByLabelText('Sobrenome'), 'Souza')
     await usuario.type(screen.getByLabelText('CPF'), '52998224725')
+    await usuario.type(screen.getByLabelText('Data de nascimento'), '1990-05-20')
     await usuario.type(screen.getByLabelText('Email'), 'ana@exemplo.com')
     await usuario.type(screen.getByLabelText('Celular'), '24988887777')
     await usuario.upload(screen.getByLabelText('Sua foto'), fotoTeste())
@@ -256,6 +257,7 @@ describe('Cadastro', () => {
       nome: 'Ana',
       sobrenome: 'Souza',
       cpf: '529.982.247-25',
+      data_nascimento: '1990-05-20',
       email: 'ana@exemplo.com',
       telefone: '(24) 98888-7777',
       foto: expect.any(File),

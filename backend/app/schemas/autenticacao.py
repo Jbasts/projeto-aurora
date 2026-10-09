@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 
 from fastapi import UploadFile
@@ -10,9 +10,11 @@ from app.schemas.comum import (
     Celular,
     ComEndereco,
     Cpf,
+    DataNascimento,
     EmailValido,
     SenhaForte,
     TextoAparado,
+    calcular_idade,
     mascarar_cpf,
 )
 from app.services.arquivos import url_assinada_conta
@@ -54,7 +56,18 @@ class ComFotoDaConta(BaseModel):
         return url_assinada_conta(self.foto_id, "miniatura") if self.foto_id else None
 
 
-class UsuarioSaida(ComFotoDaConta):
+class ComDataNascimento(BaseModel):
+    """Data de nascimento e a idade calculada a partir dela (nulas em contas antigas)."""
+
+    data_nascimento: date | None
+
+    @computed_field
+    @property
+    def idade(self) -> int | None:
+        return calcular_idade(self.data_nascimento) if self.data_nascimento else None
+
+
+class UsuarioSaida(ComFotoDaConta, ComDataNascimento):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
@@ -113,6 +126,7 @@ class CadastroEntrada(ComConfirmacaoDeSenha, ComEndereco):
     nome: TextoAparado = Field(min_length=2, max_length=150)
     sobrenome: TextoAparado = Field(min_length=2, max_length=150)
     cpf: Cpf
+    data_nascimento: DataNascimento
     email: EmailValido
     telefone: Celular
     # senha e confirmar_senha vêm de ComConfirmacaoDeSenha; o endereço, de ComEndereco

@@ -236,6 +236,7 @@ describe('Meu perfil', () => {
     expect(chamadas.find((c) => c.chave === 'PATCH /me')?.corpo).toEqual({
       nome: 'Ana Nova',
       sobrenome: 'Souza',
+      data_nascimento: '1990-05-20',
       telefone: '(24) 99999-8888',
       cep: '25651-000',
       logradouro: 'Rua Afrânio de Melo Franco',

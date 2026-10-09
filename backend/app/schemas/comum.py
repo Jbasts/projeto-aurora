@@ -1,4 +1,5 @@
 import re
+from datetime import date
 from typing import Annotated
 
 from email_validator import EmailNotValidError, validate_email
@@ -93,6 +94,25 @@ def formatar_celular(valor: str) -> str:
     return f"({digitos[:2]}) {digitos[2:7]}-{digitos[7:]}"
 
 
+IDADE_MAXIMA = 120
+
+
+def calcular_idade(nascimento: date, hoje: date | None = None) -> int:
+    """Anos completos: o aniversário deste ano só conta a partir do dia."""
+    hoje = hoje or date.today()
+    return (
+        hoje.year - nascimento.year - ((hoje.month, hoje.day) < (nascimento.month, nascimento.day))
+    )
+
+
+def validar_data_nascimento(valor: date) -> date:
+    if valor > date.today():
+        raise ValueError("A data de nascimento não pode ser no futuro.")
+    if calcular_idade(valor) > IDADE_MAXIMA:
+        raise ValueError("Confira a data de nascimento.")
+    return valor
+
+
 def formatar_cep(valor: str) -> str:
     """Aceita com ou sem traço e devolve 00000-000."""
     digitos = re.sub(r"\D", "", valor)
@@ -128,6 +148,7 @@ SenhaForte = Annotated[str, Field(max_length=128), AfterValidator(validar_senha)
 Telefone = Annotated[str | None, Field(max_length=20), AfterValidator(formatar_telefone)]
 Cpf = Annotated[str, Field(max_length=14), AfterValidator(validar_cpf)]
 Celular = Annotated[str, Field(max_length=20), AfterValidator(formatar_celular)]
+DataNascimento = Annotated[date, AfterValidator(validar_data_nascimento)]
 Cep = Annotated[str, BeforeValidator(_aparar), Field(max_length=9), AfterValidator(formatar_cep)]
 Uf = Annotated[str, BeforeValidator(_aparar), Field(max_length=2), AfterValidator(validar_uf)]
 TextoOpcional = Annotated[str | None, BeforeValidator(_vazio_para_nulo)]

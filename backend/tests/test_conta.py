@@ -1,7 +1,7 @@
 """Foto da conta, login e recuperação por CPF, trocas de email e CPF, dados de contas antigas."""
 
 import re
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from PIL import Image
@@ -16,8 +16,10 @@ from app.entities import (
     TokenTrocaEmail,
     Usuario,
 )
+from app.schemas.autenticacao import UsuarioSaida
+from app.schemas.comum import calcular_idade
 from app.services.email import Email
-from tests.conftest import CPF, ENDERECO, foto_png, postar_cadastro
+from tests.conftest import CPF, ENDERECO, MEUS_DADOS, foto_png, postar_cadastro
 
 LOGIN = "/api/v1/auth/login"
 RECUPERAR = "/api/v1/auth/recuperar-senha"
@@ -72,6 +74,7 @@ DADOS_CADASTRO = {
     "cpf": CPF,
     "email": "bia@exemplo.com",
     "telefone": "24988887777",
+    "data_nascimento": "1990-05-20",
     "senha": SENHA,
     "confirmar_senha": SENHA,
     **ENDERECO,
@@ -439,3 +442,53 @@ class TestCompletarDadosDeContaAntiga:
     def test_somente_admin(self, cliente, ana, criar_usuario):
         antiga = criar_usuario(email="antiga@exemplo.com")
         assert self.completar(cliente, ana, antiga, cpf=OUTRO_CPF).status_code == 403
+
+
+class TestDataDeNascimento:
+    def test_cadastro_guarda_a_data_e_calcula_a_idade(self, cliente, sessao):
+        assert postar_cadastro(cliente, DADOS_CADASTRO).status_code == 201
+        usuario = sessao.scalar(select(Usuario))
+        assert usuario.data_nascimento == date(1990, 5, 20)
+        # A conta ainda está pendente (não entra): confere a saída da API direto.
+        corpo = UsuarioSaida.model_validate(usuario).model_dump(mode="json")
+        assert corpo["data_nascimento"] == "1990-05-20"
+        assert corpo["idade"] == calcular_idade(date(1990, 5, 20))
+
+    @pytest.mark.parametrize(
+        ("valor", "mensagem"),
+        [
+            (None, "Campo obrigatório."),
+            ("2999-01-01", "A data de nascimento não pode ser no futuro."),
+            ("1890-01-01", "Confira a data de nascimento."),
+            ("31/12/1990", "Valor inválido."),
+        ],
+    )
+    def test_validacoes_no_cadastro(self, cliente, valor, mensagem):
+        resposta = postar_cadastro(cliente, {**DADOS_CADASTRO, "data_nascimento": valor})
+        assert resposta.status_code == 422
+        assert {"campo": "data_nascimento", "mensagem": mensagem} in resposta.json()["campos"]
+
+    def test_meu_perfil_altera_e_conta_antiga_sem_data(self, cliente, ana, admin, sessao):
+        assert cliente.get(AUTH_ME, headers=cabecalho(ana)).json()["idade"] is None
+        resposta = cliente.patch(
+            "/api/v1/me",
+            headers=cabecalho(ana),
+            json={"nome": "Ana", **MEUS_DADOS, "data_nascimento": "2000-01-15"},
+        )
+        assert resposta.status_code == 200
+        assert resposta.json()["idade"] == calcular_idade(date(2000, 1, 15))
+        log = sessao.scalars(select(LogAuditoria)).first()
+        assert "data_nascimento" in log.detalhes["campos"]
+        detalhe = cliente.get(f"{USUARIOS}/{ana.id}", headers=cabecalho(admin)).json()
+        assert (detalhe["data_nascimento"], detalhe["idade"]) == (
+            "2000-01-15",
+            calcular_idade(date(2000, 1, 15)),
+        )
+
+
+@pytest.mark.parametrize(
+    ("hoje", "esperada"),
+    [(date(2026, 5, 19), 35), (date(2026, 5, 20), 36), (date(2026, 12, 31), 36)],
+)
+def test_idade_so_muda_no_aniversario(hoje, esperada):
+    assert calcular_idade(date(1990, 5, 20), hoje) == esperada

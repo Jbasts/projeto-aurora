@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 
 import type { Usuario } from '../features/auth/tipos'
+import { calcularIdade } from '../features/comum/datas'
 import type { Solicitacao, SolicitacaoPropria } from '../features/solicitacoes/tipos'
 import type { UsuarioDetalhe } from '../features/usuarios/tipos'
 import {
@@ -27,6 +28,8 @@ function detalhe(dados: Partial<UsuarioDetalhe> = {}): UsuarioDetalhe {
     cpf: '529.982.247-25',
     email: 'bruno@exemplo.com',
     telefone: '(24) 98888-7777',
+    data_nascimento: '1985-03-10',
+    idade: 41,
     perfil: 'PADRAO',
     status: 'ATIVO',
     criado_em: '2026-10-01T15:00:00Z',
@@ -499,5 +502,52 @@ describe('Dados do usuário: solicitações e contas antigas', () => {
       cpf: '111.444.777-35',
     })
     expect(screen.queryByRole('button', { name: 'Completar dados' })).not.toBeInTheDocument()
+  })
+})
+
+describe('Data de nascimento', () => {
+  it('Meu perfil calcula a idade enquanto a pessoa digita', async () => {
+    const usuario = userEvent.setup()
+    mockarApi({ 'POST /auth/refresh': sessaoCom({ data_nascimento: null, idade: null }) })
+    renderizarApp('/meu-perfil')
+    const campo = await screen.findByLabelText('Data de nascimento')
+    expect(campo).toHaveValue('')
+    await usuario.type(campo, '2000-01-15')
+    const idade = calcularIdade('2000-01-15') ?? 0
+    expect(campo).toHaveAccessibleDescription(`Idade: ${idade} anos`)
+  })
+
+  it('recusa data no futuro sem chamar a API', async () => {
+    const usuario = userEvent.setup()
+    const { chamadas } = mockarApi({ 'POST /auth/refresh': sessaoCom({}) })
+    renderizarApp('/meu-perfil')
+    const campo = await screen.findByLabelText('Data de nascimento')
+    await usuario.clear(campo)
+    await usuario.type(campo, '2999-01-01')
+    await usuario.click(screen.getByRole('button', { name: 'Salvar dados' }))
+
+    expect(
+      await screen.findByText('A data de nascimento não pode ser no futuro.'),
+    ).toBeInTheDocument()
+    expect(chamadas.some((c) => c.chave === 'PATCH /me')).toBe(false)
+  })
+
+  it('Dados do usuário mostra a data e a idade', async () => {
+    const bruno = detalhe()
+    mockarApi({
+      'POST /auth/refresh': { corpo: sessaoTeste('ADMIN') },
+      'GET /usuarios': paginaDe([]),
+      [`GET /usuarios/${bruno.id}`]: { corpo: bruno },
+    })
+    renderizarApp(`/usuarios/${bruno.id}`)
+    const pessoais = await screen.findByRole('region', { name: 'Dados pessoais' })
+    expect(within(pessoais).getByText('10/03/1985')).toBeInTheDocument()
+    expect(within(pessoais).getByText('41 anos')).toBeInTheDocument()
+  })
+
+  it('a idade só muda no dia do aniversário', () => {
+    expect(calcularIdade('1990-05-20', new Date(2026, 4, 19))).toBe(35)
+    expect(calcularIdade('1990-05-20', new Date(2026, 4, 20))).toBe(36)
+    expect(calcularIdade('', new Date(2026, 4, 20))).toBeNull()
   })
 })

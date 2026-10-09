@@ -260,6 +260,7 @@ class TestCadastro:
         "cpf": CPF,
         "email": "Ana.Souza@Exemplo.com",
         "telefone": "24988887777",
+        "data_nascimento": "1990-05-20",
         "senha": "SenhaBoa123",
         "confirmar_senha": "SenhaBoa123",
         **ENDERECO,

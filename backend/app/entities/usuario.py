@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, text
+from sqlalchemy import Date, DateTime, ForeignKey, Index, Integer, String, text
 from sqlalchemy.dialects.postgresql import CITEXT, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -31,6 +31,9 @@ class Usuario(Base):
     # Obrigatória no cadastro; nula nas contas antigas e nas criadas por script.
     foto_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), unique=True)
     telefone: Mapped[str | None] = mapped_column(String(20))
+    # Obrigatória no cadastro; nula nas contas antigas (pedida no próximo Meu perfil).
+    # A idade não é guardada: é calculada a partir desta data.
+    data_nascimento: Mapped[date | None] = mapped_column(Date)
     # Endereço (obrigatório no cadastro; nulo nas contas criadas antes dele ou por script)
     cep: Mapped[str | None] = mapped_column(String(9))
     logradouro: Mapped[str | None] = mapped_column(String(200))

@@ -29,6 +29,7 @@ DADOS = {
     "sobrenome": "Souza",
     "cpf": CPF,
     "telefone": "24988887777",
+    "data_nascimento": "1990-05-20",
     "email": "ana@exemplo.com",
     "senha": "SenhaBoa123",
     "confirmar_senha": "SenhaBoa123",

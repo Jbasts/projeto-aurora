@@ -75,6 +75,8 @@ export function usuarioTeste(perfil: Perfil = 'COLABORADOR'): Usuario {
     foto_url: null,
     foto_miniatura_url: null,
     telefone: '(24) 98888-7777',
+    data_nascimento: '1990-05-20',
+    idade: 36,
     cpf_mascarado: '***.982.247-**',
     cep: '25651-000',
     logradouro: 'Rua Afrânio de Melo Franco',

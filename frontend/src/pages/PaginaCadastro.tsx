@@ -16,6 +16,7 @@ import { useCadastrar } from '../features/auth/api'
 import { esquemaCadastro, type DadosCadastro } from '../features/auth/esquemas'
 import { CamposEndereco } from '../features/enderecos/CamposEndereco'
 import { ENDERECO_VAZIO, NOMES_CAMPOS_ENDERECO } from '../features/enderecos/esquemas'
+import { CampoDataNascimento } from '../features/usuarios/CampoDataNascimento'
 import { iniciaisDaConta } from '../features/usuarios/conta'
 import { useTituloDocumento } from '../hooks/useTituloDocumento'
 
@@ -23,6 +24,7 @@ const CAMPOS = [
   'nome',
   'sobrenome',
   'cpf',
+  'data_nascimento',
   'email',
   'telefone',
   'foto',
@@ -49,6 +51,7 @@ export function PaginaCadastro() {
     defaultValues: {
       nome: '',
       sobrenome: '',
+      data_nascimento: '',
       cpf: '',
       email: '',
       telefone: '',
@@ -127,6 +130,7 @@ export function PaginaCadastro() {
                 return cpf.onChange(evento)
               }}
             />
+            <CampoDataNascimento />
             <CampoTexto
               rotulo="Email"
               type="email"

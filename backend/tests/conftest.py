@@ -41,7 +41,12 @@ ENDERECO = {
 # CPF fictício com dígitos verificadores válidos.
 CPF = "529.982.247-25"
 # Campos obrigatórios do Meu perfil além do nome.
-MEUS_DADOS = {"sobrenome": "Souza", "telefone": "24988887777", **ENDERECO}
+MEUS_DADOS = {
+    "sobrenome": "Souza",
+    "data_nascimento": "1990-05-20",
+    "telefone": "24988887777",
+    **ENDERECO,
+}
 
 
 def foto_png(largura: int = 120, altura: int = 120) -> bytes:

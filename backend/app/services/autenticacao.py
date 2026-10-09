@@ -202,6 +202,7 @@ def cadastrar(sessao: Session, dados: CadastroEntrada, foto: bytes) -> tuple[Usu
                 cpf=dados.cpf,
                 email=dados.email,
                 telefone=dados.telefone,
+                data_nascimento=dados.data_nascimento,
                 senha_hash=gerar_hash_senha(dados.senha),
                 perfil=PerfilUsuario.PADRAO,
                 status=StatusUsuario.PENDENTE,

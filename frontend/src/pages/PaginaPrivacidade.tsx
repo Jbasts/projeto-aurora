@@ -58,7 +58,7 @@ export function PaginaPrivacidade() {
       <Secao titulo="Dados de quem usa a plataforma">
         <Lista
           itens={[
-            'nome, sobrenome, CPF, email, celular, endereço e foto informados no cadastro (o CPF completo só é visto por pessoas administradoras);',
+            'nome, sobrenome, CPF, data de nascimento, email, celular, endereço e foto informados no cadastro (o CPF completo só é visto por pessoas administradoras);',
             'senha, guardada apenas de forma cifrada (ninguém consegue lê-la);',
             'registros de uso: logins, alterações e visualizações de cadastros, com data, hora e endereço IP.',
           ]}

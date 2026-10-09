@@ -4,11 +4,12 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, model_validator
 
 from app.entities import PerfilUsuario, StatusSolicitacao, StatusUsuario, TipoSolicitacao
-from app.schemas.autenticacao import ComConfirmacaoDeSenha, ComFotoDaConta
+from app.schemas.autenticacao import ComConfirmacaoDeSenha, ComDataNascimento, ComFotoDaConta
 from app.schemas.comum import (
     Celular,
     ComEndereco,
     CpfOpcional,
+    DataNascimento,
     EmailOpcional,
     TextoAparado,
     TextoOpcional,
@@ -52,7 +53,7 @@ class UsuarioGestaoSaida(ComFotoDaConta):
         return formatar_cpf(cpf) if cpf else None
 
 
-class UsuarioDetalheSaida(UsuarioGestaoSaida):
+class UsuarioDetalheSaida(UsuarioGestaoSaida, ComDataNascimento):
     """Tela Dados do usuário (somente ADMIN): todos os dados da conta, exceto a senha."""
 
     cep: str | None
@@ -94,6 +95,7 @@ class MeuPerfilEntrada(ComEndereco):
 
     nome: TextoAparado = Field(min_length=2, max_length=150)
     sobrenome: TextoAparado = Field(min_length=2, max_length=150)
+    data_nascimento: DataNascimento
     telefone: Celular
 
 

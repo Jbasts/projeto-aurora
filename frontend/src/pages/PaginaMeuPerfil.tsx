@@ -20,6 +20,7 @@ import { TituloPagina } from '../components/TituloPagina'
 import { useAutenticacao, useUsuarioLogado } from '../contexts/autenticacao'
 import { CamposEndereco } from '../features/enderecos/CamposEndereco'
 import { AlteracaoEmailCpf } from '../features/usuarios/AlteracaoEmailCpf'
+import { CampoDataNascimento } from '../features/usuarios/CampoDataNascimento'
 import { FotoDaConta } from '../features/usuarios/FotoDaConta'
 import { enderecoInicial, NOMES_CAMPOS_ENDERECO } from '../features/enderecos/esquemas'
 import { useAtualizarMeusDados, useTrocarSenha } from '../features/usuarios/api'
@@ -85,6 +86,7 @@ function SecaoDados() {
     defaultValues: {
       nome: usuario.nome,
       sobrenome: usuario.sobrenome ?? '',
+      data_nascimento: usuario.data_nascimento ?? '',
       telefone: usuario.telefone ?? '',
       ...enderecoInicial(usuario),
     },
@@ -104,7 +106,7 @@ function SecaoDados() {
     } catch (e) {
       const geral = aplicarErrosDaApi(
         e,
-        ['nome', 'sobrenome', 'telefone', ...NOMES_CAMPOS_ENDERECO],
+        ['nome', 'sobrenome', 'data_nascimento', 'telefone', ...NOMES_CAMPOS_ENDERECO],
         setError,
       )
       if (geral) setAviso({ tipo: 'erro', texto: geral })
@@ -155,6 +157,7 @@ function SecaoDados() {
               {...register('sobrenome')}
             />
           </div>
+          <CampoDataNascimento />
           <CampoTexto
             rotulo="Celular"
             type="tel"

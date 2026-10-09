@@ -12,6 +12,9 @@ export interface Usuario {
   foto_url: string | null
   foto_miniatura_url: string | null
   telefone: string | null
+  /** "AAAA-MM-DD"; nula em contas antigas. A idade vem calculada pela API. */
+  data_nascimento: string | null
+  idade: number | null
   /** ***.456.789-** — o CPF completo só aparece para ADMIN, em Gerenciar usuários. */
   cpf_mascarado: string | null
   cep: string | null
