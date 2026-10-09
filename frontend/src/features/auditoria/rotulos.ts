@@ -7,11 +7,17 @@ export const ROTULOS_ACAO = {
   LOGIN_FALHA: 'Falha no login',
   LOGIN_BLOQUEIO: 'Conta bloqueada por tentativas',
   EMAIL_VERIFICADO: 'Email confirmado',
+  SOLICITACAO_CRIADA: 'Solicitação de troca criada',
+  SOLICITACAO_EMAIL_CONFIRMADO: 'Email novo confirmado pelo link',
+  SOLICITACAO_APROVADA: 'Solicitação de troca aprovada',
+  SOLICITACAO_RECUSADA: 'Solicitação de troca recusada',
   USUARIO_APROVADO: 'Cadastro aprovado',
   USUARIO_RECUSADO: 'Cadastro recusado',
   USUARIO_INATIVADO: 'Usuário inativado',
   USUARIO_REATIVADO: 'Usuário reativado',
   USUARIO_PERFIL_ALTERADO: 'Perfil de acesso alterado',
+  USUARIO_VISUALIZADO: 'Dados de usuário visualizados',
+  USUARIO_DADOS_COMPLETADOS: 'Dados de conta antiga completados',
   MEUS_DADOS_ALTERADOS: 'Dados próprios alterados',
   SENHA_ALTERADA: 'Senha alterada',
   PESSOA_CADASTRADA: 'Pessoa cadastrada',
@@ -29,7 +35,7 @@ export type AcaoAuditoria = keyof typeof ROTULOS_ACAO
 export const ACOES = Object.keys(ROTULOS_ACAO) as AcaoAuditoria[]
 
 const MOTIVOS_LOGIN: Record<string, string> = {
-  EMAIL_DESCONHECIDO: 'email não cadastrado',
+  EMAIL_DESCONHECIDO: 'email ou CPF não cadastrado',
   SENHA_INCORRETA: 'senha incorreta',
   CONTA_BLOQUEADA: 'conta bloqueada no momento',
   TENTATIVAS_ESGOTADAS: 'tentativas esgotadas',
@@ -38,7 +44,13 @@ const MOTIVOS_LOGIN: Record<string, string> = {
   CONTA_INATIVA: 'conta inativa',
 }
 
-const TIPOS_FOTO: Record<string, string> = { PERFIL: 'foto de perfil', ALBUM: 'álbum' }
+// `tipo` aparece em fotos (PERFIL/ALBUM) e em solicitações de troca (EMAIL/CPF).
+const TIPOS: Record<string, string> = {
+  PERFIL: 'foto de perfil',
+  ALBUM: 'álbum',
+  EMAIL: 'troca de email',
+  CPF: 'troca de CPF',
+}
 
 function rotuloValor(valor: string): string {
   return ROTULOS_PERFIL[valor as Perfil] ?? ROTULOS_STATUS_USUARIO[valor as StatusUsuario] ?? valor
@@ -54,7 +66,7 @@ export function descreverDetalhes(detalhes: Record<string, unknown> | null): str
     partes.push(`De ${rotuloValor(de)} para ${rotuloValor(para)}`)
   }
   if (Array.isArray(campos) && campos.length) partes.push(`Campos: ${campos.join(', ')}`)
-  if (typeof tipo === 'string') partes.push(`Tipo: ${TIPOS_FOTO[tipo] ?? tipo}`)
+  if (typeof tipo === 'string') partes.push(`Tipo: ${TIPOS[tipo] ?? tipo}`)
   return partes.length ? partes.join(' · ') : null
 }
 

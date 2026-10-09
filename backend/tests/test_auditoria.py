@@ -125,4 +125,4 @@ class TestListagem:
 
 def test_acoes_listadas_batem_com_as_constantes():
     assert "AVISTAMENTO_REGISTRADO" in auditoria.ACOES
-    assert len(auditoria.ACOES) == len(set(auditoria.ACOES)) == 19
+    assert len(auditoria.ACOES) == len(set(auditoria.ACOES)) == 25

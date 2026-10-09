@@ -38,7 +38,7 @@ describe('rotas protegidas', () => {
     expect(await screen.findByRole('heading', { name: 'Entrar' })).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/login')
 
-    await usuario.type(screen.getByLabelText('Email'), 'ana@exemplo.com')
+    await usuario.type(screen.getByLabelText('Email ou CPF'), 'ana@exemplo.com')
     await usuario.type(screen.getByLabelText('Senha'), 'SenhaBoa123')
     await usuario.click(screen.getByRole('button', { name: 'Entrar' }))
 

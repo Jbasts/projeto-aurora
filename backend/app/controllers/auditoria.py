@@ -13,7 +13,7 @@ def _ref(usuario: Usuario | None) -> UsuarioAuditoriaRef | None:
     if usuario is None:
         return None
     return UsuarioAuditoriaRef(
-        id=usuario.id, nome=usuario.nome, email=usuario.email, perfil=usuario.perfil
+        id=usuario.id, nome=usuario.nome_completo, email=usuario.email, perfil=usuario.perfil
     )
 
 

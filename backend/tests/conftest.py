@@ -6,11 +6,15 @@ Cada teste roda dentro de uma transação desfeita ao final, então os dados nã
 
 from collections.abc import Callable, Iterator
 from datetime import UTC, datetime
+from io import BytesIO
+from typing import Any
 
 import pytest
 from alembic import command
 from alembic.config import Config
 from fastapi.testclient import TestClient
+from httpx import Response
+from PIL import Image
 from sqlalchemy import Connection, Engine, create_engine, make_url, text
 from sqlalchemy.orm import Session
 
@@ -33,6 +37,28 @@ ENDERECO = {
     "cidade": "Petrópolis",
     "uf": "rj",
 }
+
+# CPF fictício com dígitos verificadores válidos.
+CPF = "529.982.247-25"
+# Campos obrigatórios do Meu perfil além do nome.
+MEUS_DADOS = {"sobrenome": "Souza", "telefone": "24988887777", **ENDERECO}
+
+
+def foto_png(largura: int = 120, altura: int = 120) -> bytes:
+    """Imagem fictícia (um quadrado colorido) para a foto da conta."""
+    saida = BytesIO()
+    Image.new("RGB", (largura, altura), (30, 120, 100)).save(saida, "PNG")
+    return saida.getvalue()
+
+
+def postar_cadastro(
+    cliente: TestClient, dados: dict[str, Any], foto: bytes | None = None
+) -> Response:
+    """POST /auth/cadastro em multipart: os campos do formulário e a foto."""
+    campos = {chave: str(valor) for chave, valor in dados.items() if valor is not None}
+    arquivos = {"foto": ("foto.png", foto if foto is not None else foto_png(), "image/png")}
+    return cliente.post("/api/v1/auth/cadastro", data=campos, files=arquivos)
+
 
 URL_TESTE = make_url(obter_configuracoes().DATABASE_URL)
 URL_TESTE = URL_TESTE.set(database=f"{URL_TESTE.database}_teste")
@@ -77,6 +103,13 @@ def sessao(conexao: Connection) -> Iterator[Session]:
     # commit() dentro do código testado só libera um savepoint; o rollback final desfaz tudo.
     with Session(bind=conexao, join_transaction_mode="create_savepoint") as sessao:
         yield sessao
+
+
+@pytest.fixture(autouse=True)
+def pasta_de_uploads(tmp_path, monkeypatch):
+    """Fotos gravadas pelos testes vão para uma pasta temporária."""
+    monkeypatch.setattr(obter_configuracoes(), "UPLOAD_DIR", str(tmp_path))
+    return tmp_path
 
 
 # --- API ---
@@ -128,6 +161,7 @@ def criar_usuario(sessao: Session) -> Callable[..., Usuario]:
         status: StatusUsuario = StatusUsuario.ATIVO,
         nome: str = "Pessoa de Teste",
         email_verificado: bool = True,
+        cpf: str | None = None,
     ) -> Usuario:
         usuario = Usuario(
             nome=nome,
@@ -136,6 +170,7 @@ def criar_usuario(sessao: Session) -> Callable[..., Usuario]:
             perfil=perfil,
             status=status,
             email_verificado_em=datetime.now(UTC) if email_verificado else None,
+            cpf=cpf,
         )
         sessao.add(usuario)
         sessao.flush()

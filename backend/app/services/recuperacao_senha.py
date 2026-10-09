@@ -10,23 +10,26 @@ from app.emails import montar_email_redefinicao
 from app.entities import TokenRedefinicaoSenha
 from app.repositories import tokens_redefinicao as repositorio_tokens
 from app.repositories import usuarios as repositorio_usuarios
+from app.services.autenticacao import buscar_por_login
 from app.services.email import Email
 
 MENSAGEM_PEDIDO_RECEBIDO = (
-    "Se este email estiver cadastrado, você vai receber um link para criar uma nova senha."
+    "Se este email ou CPF estiver cadastrado, você vai receber no email da conta "
+    "um link para criar uma nova senha."
 )
 MENSAGEM_SENHA_ATUALIZADA = "Senha atualizada. Faça login com a nova senha."
 
 
-def solicitar(sessao: Session, email: str, agora: datetime | None = None) -> Email | None:
-    """Cria um token e devolve o email a enviar, ou None (email desconhecido ou limite atingido).
+def solicitar(sessao: Session, login: str, agora: datetime | None = None) -> Email | None:
+    """Cria um token e devolve o email a enviar, ou None (conta desconhecida ou limite atingido).
 
-    A resposta da API é sempre a mesma, para não revelar se o email está cadastrado.
+    `login` é o email ou o CPF; o link vai sempre para o email atual da conta.
+    A resposta da API é sempre a mesma, para não revelar se a conta existe.
     """
     configuracoes = obter_configuracoes()
     agora = agora or datetime.now(UTC)
 
-    usuario = repositorio_usuarios.buscar_por_email(sessao, email)
+    usuario = buscar_por_login(sessao, login)
     if usuario is None:
         return None
 

@@ -35,3 +35,15 @@ def montar_email_verificacao(destinatario: str, nome: str, link: str, horas_vali
         ),
         texto=_carregar("verificar_email.txt").substitute(valores),
     )
+
+
+def montar_email_troca(destinatario: str, nome: str, link: str, horas_validade: int) -> Email:
+    valores = {"nome": nome, "link": link, "horas": str(horas_validade)}
+    return Email(
+        destinatario=destinatario,
+        assunto="Projeto Aurora — confirme seu novo email",
+        html=_carregar("confirmar_novo_email.html").substitute(
+            {chave: escape(valor) for chave, valor in valores.items()}
+        ),
+        texto=_carregar("confirmar_novo_email.txt").substitute(valores),
+    )

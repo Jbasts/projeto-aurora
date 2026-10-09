@@ -11,7 +11,13 @@ function renderizar(perfil: Perfil, rota = '/') {
     [
       {
         path: '*',
-        element: <Cabecalho usuario={{ nome: 'Ana Teste', perfil }} aoSair={() => {}} />,
+        element: (
+          <Cabecalho
+            usuario={{ nome: 'Ana Teste', perfil }}
+            aoSair={() => {}}
+            contadores={{ '/usuarios': 2, '/solicitacoes': 1 }}
+          />
+        ),
       },
     ],
     { initialEntries: [rota] },
@@ -24,15 +30,32 @@ const rotulos = (nav: ReturnType<typeof renderizar>) =>
   nav.getAllByRole('link').map((link) => link.textContent)
 
 describe('Cabecalho', () => {
-  it('mostra todos os itens para pessoa administradora', () => {
+  it('a barra tem só os itens do dia a dia, também para a pessoa administradora', () => {
     expect(rotulos(renderizar('ADMIN'))).toEqual([
       'Início',
       'Pessoas',
       'Cadastrar',
       'Mapa',
       'Mapa de calor',
-      'Usuários',
-      'Auditoria',
+    ])
+  })
+
+  it('pessoa administradora acha a administração no menu da conta, com as pendências', async () => {
+    const usuario = userEvent.setup()
+    renderizar('ADMIN')
+    const botao = screen.getByRole('button', { name: /Ana Teste/ })
+    expect(botao).toHaveTextContent('3')
+    await usuario.click(botao)
+    const itens = screen
+      .getAllByRole('link')
+      .filter((link) => !link.closest('nav') && link.getAttribute('href') !== '/')
+      .map((link) => [link.textContent, link.getAttribute('href')])
+    expect(itens).toEqual([
+      ['Usuários2, 2 pendentes', '/usuarios'],
+      ['Solicitações1, 1 pendente', '/solicitacoes'],
+      ['Permissões', '/permissoes'],
+      ['Auditoria', '/auditoria'],
+      ['Meu perfil', '/meu-perfil'],
     ])
   })
 

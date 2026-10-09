@@ -1,7 +1,9 @@
-import { useId, useState } from 'react'
+import { useState } from 'react'
+import { Link } from 'react-router'
 
 import { ErroApi, MENSAGEM_SEM_CONEXAO } from '../api/cliente'
 import { Alerta } from '../components/Alerta'
+import { Avatar } from '../components/Avatar'
 import { Botao } from '../components/Botao'
 import { CampoSelecao } from '../components/formulario/CampoSelecao'
 import { CampoTexto } from '../components/formulario/CampoTexto'
@@ -12,6 +14,8 @@ import { useAutenticacao, useUsuarioLogado } from '../contexts/autenticacao'
 import type { StatusUsuario } from '../features/auth/tipos'
 import { useAlterarUsuario, useContagemPendentes, useUsuarios } from '../features/usuarios/api'
 import { formatarData } from '../features/comum/datas'
+import { iniciaisDaConta } from '../features/usuarios/conta'
+import { EscolhaPerfil } from '../features/usuarios/EscolhaPerfil'
 import {
   PERFIS,
   ROTULOS_PERFIL,
@@ -22,7 +26,8 @@ import type { AlteracaoUsuario, UsuarioGestao } from '../features/usuarios/tipos
 import { useTituloDocumento } from '../hooks/useTituloDocumento'
 import { useValorAtrasado } from '../hooks/useValorAtrasado'
 
-type Acao = 'aprovar' | 'recusar' | 'perfil' | 'inativar' | 'reativar'
+// O perfil de quem já foi aprovado muda na tela Permissões.
+type Acao = 'aprovar' | 'recusar' | 'inativar' | 'reativar'
 
 interface AcaoAberta {
   acao: Acao
@@ -44,7 +49,6 @@ const OPCOES_STATUS = [
 const MENSAGENS_SUCESSO: Record<Acao, (nome: string) => string> = {
   aprovar: (nome) => `Cadastro de ${nome} aprovado.`,
   recusar: (nome) => `Cadastro de ${nome} recusado.`,
-  perfil: (nome) => `Perfil de acesso de ${nome} alterado.`,
   inativar: (nome) => `${nome} foi inativado(a) e perdeu o acesso.`,
   reativar: (nome) => `${nome} foi reativado(a).`,
 }
@@ -94,7 +98,7 @@ export function PaginaUsuarios() {
     try {
       const alterado = await alterar.mutateAsync({ id: usuario.id, ...dados })
       setAcaoAberta(null)
-      setSucesso(MENSAGENS_SUCESSO[acao](alterado.nome))
+      setSucesso(MENSAGENS_SUCESSO[acao](nomeCompleto(alterado)))
       // A própria pessoa administradora mudou o próprio acesso: reflete na hora.
       if (alterado.id === eu.id) {
         if (alterado.status !== 'ATIVO') await sair()
@@ -199,27 +203,36 @@ interface ListaProps {
 
 function acoesDoStatus(status: StatusUsuario): Acao[] {
   if (status === 'PENDENTE') return ['aprovar', 'recusar']
-  if (status === 'ATIVO') return ['perfil', 'inativar']
-  return ['reativar', 'perfil']
+  if (status === 'ATIVO') return ['inativar']
+  return ['reativar']
 }
 
 const ROTULOS_ACAO: Record<Acao, string> = {
   aprovar: 'Aprovar',
   recusar: 'Recusar',
-  perfil: 'Alterar perfil',
   inativar: 'Inativar',
   reativar: 'Reativar',
 }
 
+const estiloLinkDados =
+  'alvo-toque inline-flex items-center justify-center rounded-botao border border-borda-campo bg-fundo px-3 text-sm font-semibold whitespace-nowrap text-texto hover:bg-fundo-topo'
+
 function Acoes({ usuario, aoAgir }: { usuario: UsuarioGestao; aoAgir: ListaProps['aoAgir'] }) {
   return (
     <div className="flex flex-nowrap gap-2">
+      <Link
+        to={`/usuarios/${usuario.id}`}
+        aria-label={`Ver dados: ${nomeCompleto(usuario)}`}
+        className={estiloLinkDados}
+      >
+        Ver dados
+      </Link>
       {acoesDoStatus(usuario.status).map((acao) => (
         <Botao
           key={acao}
           variante={acao === 'aprovar' ? 'primario' : 'secundario'}
           className="px-3 text-sm whitespace-nowrap"
-          aria-label={`${ROTULOS_ACAO[acao]}: ${usuario.nome}`}
+          aria-label={`${ROTULOS_ACAO[acao]}: ${nomeCompleto(usuario)}`}
           onClick={() => aoAgir(acao, usuario)}
         >
           {ROTULOS_ACAO[acao]}
@@ -239,11 +252,25 @@ function SeloStatus({ status }: { status: StatusUsuario }) {
   )
 }
 
+function nomeCompleto(usuario: UsuarioGestao): string {
+  return usuario.sobrenome ? `${usuario.nome} ${usuario.sobrenome}` : usuario.nome
+}
+
 function NomeUsuario({ usuario, euId }: { usuario: UsuarioGestao; euId: string }) {
   return (
-    <span className="font-semibold text-texto">
-      {usuario.nome}
-      {usuario.id === euId && <span className="font-normal text-texto-suave"> (você)</span>}
+    <span className="flex items-center gap-3">
+      <Avatar
+        url={usuario.foto_miniatura_url}
+        iniciais={iniciaisDaConta(usuario)}
+        alt=""
+        tamanho="pequeno"
+      />
+      <span className="flex flex-col items-start gap-1">
+        <span className="font-semibold text-texto">
+          {nomeCompleto(usuario)}
+          {usuario.id === euId && <span className="font-normal text-texto-suave"> (você)</span>}
+        </span>
+      </span>
     </span>
   )
 }
@@ -268,7 +295,14 @@ function TabelaUsuarios({ usuarios, euId, aoAgir }: ListaProps) {
               <th scope="row" className="px-4 py-3 font-normal">
                 <NomeUsuario usuario={usuario} euId={euId} />
               </th>
-              <td className="px-4 py-3 break-all text-texto">{usuario.email}</td>
+              <td className="px-4 py-3 text-texto">
+                <span className="block break-all">{usuario.email}</span>
+                {usuario.cpf && (
+                  <span className="block whitespace-nowrap text-texto-suave">
+                    CPF {usuario.cpf}
+                  </span>
+                )}
+              </td>
               <td className="px-4 py-3 text-texto">{ROTULOS_PERFIL[usuario.perfil]}</td>
               <td className="px-4 py-3">
                 <SeloStatus status={usuario.status} />
@@ -302,6 +336,12 @@ function ListaUsuarios({ usuarios, euId, aoAgir }: ListaProps) {
               <dt className="sr-only">Email</dt>
               <dd className="break-all text-texto">{usuario.email}</dd>
             </div>
+            {usuario.cpf && (
+              <div className="flex gap-1">
+                <dt className="text-texto-suave">CPF:</dt>
+                <dd className="text-texto">{usuario.cpf}</dd>
+              </div>
+            )}
             <div className="flex gap-1">
               <dt className="text-texto-suave">Perfil de acesso:</dt>
               <dd className="text-texto">{ROTULOS_PERFIL[usuario.perfil]}</dd>
@@ -329,20 +369,17 @@ interface ModalAcaoProps extends AcaoAberta {
 
 function ModalAcao({ acao, usuario, erro, carregando, aoFechar, aoConfirmar }: ModalAcaoProps) {
   const [perfilEscolhido, setPerfilEscolhido] = useState<Perfil>(usuario.perfil)
-  const idGrupo = useId()
-  const escolhePerfil = acao === 'aprovar' || acao === 'perfil'
+  const escolhePerfil = acao === 'aprovar'
 
   const textos: Record<Exclude<Acao, 'reativar'>, { titulo: string; botao: string }> = {
-    aprovar: { titulo: `Aprovar cadastro de ${usuario.nome}`, botao: 'Aprovar' },
-    recusar: { titulo: `Recusar cadastro de ${usuario.nome}`, botao: 'Recusar cadastro' },
-    perfil: { titulo: `Alterar perfil de ${usuario.nome}`, botao: 'Salvar perfil' },
-    inativar: { titulo: `Inativar ${usuario.nome}`, botao: 'Inativar' },
+    aprovar: { titulo: `Aprovar cadastro de ${nomeCompleto(usuario)}`, botao: 'Aprovar' },
+    recusar: { titulo: `Recusar cadastro de ${nomeCompleto(usuario)}`, botao: 'Recusar cadastro' },
+    inativar: { titulo: `Inativar ${nomeCompleto(usuario)}`, botao: 'Inativar' },
   }
   const { titulo, botao } = textos[acao as Exclude<Acao, 'reativar'>]
 
   const confirmar = () => {
     if (acao === 'aprovar') aoConfirmar({ status: 'ATIVO', perfil: perfilEscolhido })
-    else if (acao === 'perfil') aoConfirmar({ perfil: perfilEscolhido })
     else aoConfirmar({ status: 'INATIVO' })
   }
 
@@ -351,29 +388,7 @@ function ModalAcao({ acao, usuario, erro, carregando, aoFechar, aoConfirmar }: M
       <p className="text-sm break-all text-texto-suave">{usuario.email}</p>
 
       {escolhePerfil ? (
-        <fieldset className="flex flex-col gap-2" aria-describedby={`${idGrupo}-dica`}>
-          <legend className="mb-1 text-sm font-medium text-texto">Perfil de acesso</legend>
-          {PERFIS.map((p) => (
-            <label
-              key={p}
-              className="alvo-toque flex cursor-pointer items-center gap-3 rounded-campo border border-divisor px-3 has-checked:border-primaria"
-            >
-              <input
-                type="radio"
-                name={idGrupo}
-                value={p}
-                checked={perfilEscolhido === p}
-                onChange={() => setPerfilEscolhido(p)}
-                className="size-4 accent-primaria"
-              />
-              <span className="text-texto">{ROTULOS_PERFIL[p]}</span>
-            </label>
-          ))}
-          <p id={`${idGrupo}-dica`} className="text-sm text-texto-suave">
-            Pessoas colaboradoras cadastram pessoas e registram avistamentos; pessoas
-            administradoras também gerenciam usuários.
-          </p>
-        </fieldset>
+        <EscolhaPerfil valor={perfilEscolhido} aoMudar={setPerfilEscolhido} />
       ) : (
         <p className="text-texto">
           {acao === 'recusar'

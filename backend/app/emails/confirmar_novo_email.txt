@@ -1,0 +1,12 @@
+Projeto Aurora — confirme seu novo email
+
+Olá, $nome.
+
+Você pediu para usar este endereço na sua conta da plataforma Projeto Aurora.
+Confirme abrindo o link abaixo. Ele vale por $horas horas.
+
+$link
+
+Até você confirmar, o email antigo continua valendo para entrar na plataforma.
+Depois da confirmação, use este email (ou o seu CPF) para entrar. Se você não
+pediu esta troca, ignore este email.

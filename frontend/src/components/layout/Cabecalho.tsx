@@ -3,13 +3,14 @@ import { Link, NavLink } from 'react-router'
 
 import type { UsuarioResumo } from '../../features/usuarios/perfis'
 import { Logo } from '../Logo'
+import { Contador } from './Contador'
 import { MenuPessoa } from './MenuPessoa'
 import { itensDoPerfil } from './navegacao'
 
 interface CabecalhoProps {
   usuario: UsuarioResumo
   aoSair: () => void
-  /** Contador ao lado de um item do menu, pela rota (ex.: pendentes em /usuarios). */
+  /** Contador ao lado de um item, pela rota (ex.: pendentes em /usuarios, no menu da conta). */
   contadores?: Partial<Record<string, number>>
 }
 
@@ -72,20 +73,10 @@ export function Cabecalho({ usuario, aoSair, contadores = {} }: CabecalhoProps) 
             </ul>
           </nav>
           <div className="border-t border-divisor pt-2 lg:border-0 lg:pt-0">
-            <MenuPessoa usuario={usuario} aoSair={aoSair} />
+            <MenuPessoa usuario={usuario} aoSair={aoSair} contadores={contadores} />
           </div>
         </div>
       </div>
     </header>
-  )
-}
-
-function Contador({ valor }: { valor?: number }) {
-  if (!valor) return null
-  return (
-    <span className="ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full bg-primaria px-1.5 text-xs font-bold text-sobre-primaria no-underline">
-      <span aria-hidden="true">{valor}</span>
-      <span className="sr-only">{`, ${valor} ${valor === 1 ? 'pendente' : 'pendentes'}`}</span>
-    </span>
   )
 }

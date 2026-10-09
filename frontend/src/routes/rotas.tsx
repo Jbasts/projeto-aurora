@@ -9,6 +9,10 @@ import { PaginaBuscarPessoas } from '../pages/PaginaBuscarPessoas'
 import { PaginaCadastro } from '../pages/PaginaCadastro'
 import { PaginaCadastroEnviado } from '../pages/PaginaCadastroEnviado'
 import { PaginaCadastroPessoa } from '../pages/PaginaCadastroPessoa'
+import { PaginaConfirmarNovoEmail } from '../pages/PaginaConfirmarNovoEmail'
+import { PaginaDadosUsuario } from '../pages/PaginaDadosUsuario'
+import { PaginaPermissoes } from '../pages/PaginaPermissoes'
+import { PaginaSolicitacoes } from '../pages/PaginaSolicitacoes'
 import { PaginaEditarPessoa } from '../pages/PaginaEditarPessoa'
 import { PaginaInicio } from '../pages/PaginaInicio'
 import { PaginaLinkExpirado } from '../pages/PaginaLinkExpirado'
@@ -37,6 +41,7 @@ export const rotas: RouteObject[] = [
       { path: '/cadastro', element: <PaginaCadastro /> },
       { path: '/cadastro-enviado', element: <PaginaCadastroEnviado /> },
       { path: '/verificar-email', element: <PaginaVerificarEmail /> },
+      { path: '/confirmar-novo-email', element: <PaginaConfirmarNovoEmail /> },
       { path: '/recuperar-senha', element: <PaginaRecuperarSenha /> },
       { path: '/redefinir-senha', element: <PaginaRedefinirSenha /> },
     ],
@@ -69,6 +74,9 @@ export const rotas: RouteObject[] = [
             element: <RotaComPerfil perfis={['ADMIN']} />,
             children: [
               { path: '/usuarios', element: <PaginaUsuarios /> },
+              { path: '/usuarios/:id', element: <PaginaDadosUsuario /> },
+              { path: '/solicitacoes', element: <PaginaSolicitacoes /> },
+              { path: '/permissoes', element: <PaginaPermissoes /> },
               { path: '/auditoria', element: <PaginaAuditoria /> },
             ],
           },

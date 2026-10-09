@@ -1,4 +1,6 @@
 import math
+import re
+import uuid
 from datetime import UTC, datetime, timedelta
 
 from fastapi import status
@@ -18,12 +20,13 @@ from app.entities import PerfilUsuario, StatusUsuario, Usuario
 from app.repositories import usuarios as repositorio_usuarios
 from app.schemas.autenticacao import CadastroEntrada
 from app.schemas.comum import CAMPOS_ENDERECO
-from app.services import auditoria, verificacao_email
+from app.services import auditoria, foto_conta, verificacao_email
 from app.services.auditoria import AcaoAuditoria
 from app.services.email import Email
 
-MENSAGEM_CREDENCIAIS_INVALIDAS = "Email ou senha incorretos."
+MENSAGEM_CREDENCIAIS_INVALIDAS = "Email, CPF ou senha incorretos."
 MENSAGEM_EMAIL_JA_CADASTRADO = "Este email já está cadastrado. Faça login ou recupere sua senha."
+MENSAGEM_CPF_JA_CADASTRADO = "Este CPF já está cadastrado. Faça login ou recupere sua senha."
 
 
 def _credenciais_invalidas() -> ErroApi:
@@ -41,8 +44,23 @@ def _conta_bloqueada(segundos: float) -> ErroApi:
     )
 
 
+_CPF_DIGITADO = re.compile(r"[\d.\-\s]+")
+
+
+def buscar_por_login(sessao: Session, login: str) -> Usuario | None:
+    """Conta pelo email ou pelo CPF (com ou sem pontuação). Usado no login e na recuperação."""
+    login = login.strip()
+    if "@" in login:
+        return repositorio_usuarios.buscar_por_email(sessao, normalizar_email(login))
+    if _CPF_DIGITADO.fullmatch(login):
+        digitos = re.sub(r"\D", "", login)
+        if len(digitos) == 11:
+            return repositorio_usuarios.buscar_por_cpf(sessao, digitos)
+    return None
+
+
 def autenticar(
-    sessao: Session, email: str, senha: str, ip: str | None, agora: datetime | None = None
+    sessao: Session, login: str, senha: str, ip: str | None, agora: datetime | None = None
 ) -> Usuario:
     """Regras de login da seção 3.1. Cada tentativa gera auditoria."""
     configuracoes = obter_configuracoes()
@@ -61,7 +79,7 @@ def autenticar(
         sessao.commit()
         return erro
 
-    usuario = repositorio_usuarios.buscar_por_email(sessao, normalizar_email(email))
+    usuario = buscar_por_login(sessao, login)
     if usuario is None:
         verificar_senha_falsa(senha)
         raise falhar(
@@ -151,35 +169,54 @@ def usuario_do_refresh(sessao: Session, refresh_token: str | None) -> Usuario:
     return usuario
 
 
-def _email_ja_cadastrado() -> ErroApi:
+def _ja_cadastrado(campos: list[str]) -> ErroApi:
+    mensagens = {"email": MENSAGEM_EMAIL_JA_CADASTRADO, "cpf": MENSAGEM_CPF_JA_CADASTRADO}
     return ErroApi(
         status.HTTP_422_UNPROCESSABLE_ENTITY,
         "VALIDACAO",
         "Dados inválidos.",
-        campos=[{"campo": "email", "mensagem": MENSAGEM_EMAIL_JA_CADASTRADO}],
+        campos=[{"campo": campo, "mensagem": mensagens[campo]} for campo in campos],
     )
 
 
-def cadastrar(sessao: Session, dados: CadastroEntrada) -> tuple[Usuario, Email]:
-    """Cria a conta (PADRAO, PENDENTE, email não confirmado) e o email de confirmação."""
+def _campos_ja_cadastrados(sessao: Session, dados: CadastroEntrada) -> list[str]:
+    campos = []
     if repositorio_usuarios.buscar_por_email(sessao, dados.email) is not None:
-        raise _email_ja_cadastrado()
+        campos.append("email")
+    if repositorio_usuarios.buscar_por_cpf(sessao, dados.cpf) is not None:
+        campos.append("cpf")
+    return campos
+
+
+def cadastrar(sessao: Session, dados: CadastroEntrada, foto: bytes) -> tuple[Usuario, Email]:
+    """Cria a conta (PADRAO, PENDENTE, email não confirmado, com foto) e o email de confirmação."""
+    if repetidos := _campos_ja_cadastrados(sessao, dados):
+        raise _ja_cadastrado(repetidos)
+    foto_id: uuid.UUID = foto_conta.salvar(foto, "foto")
     try:
         usuario = repositorio_usuarios.adicionar(
             sessao,
             Usuario(
                 nome=dados.nome,
+                sobrenome=dados.sobrenome,
+                cpf=dados.cpf,
                 email=dados.email,
                 telefone=dados.telefone,
                 senha_hash=gerar_hash_senha(dados.senha),
                 perfil=PerfilUsuario.PADRAO,
                 status=StatusUsuario.PENDENTE,
+                foto_id=foto_id,
                 **{campo: getattr(dados, campo) for campo in CAMPOS_ENDERECO},
             ),
         )
         email = verificacao_email.gerar_email(sessao, usuario)
         sessao.commit()
-    except IntegrityError as erro:  # cadastro simultâneo com o mesmo email
+    except IntegrityError as erro:  # cadastro simultâneo com o mesmo email ou CPF
         sessao.rollback()
-        raise _email_ja_cadastrado() from erro
+        foto_conta.apagar(foto_id)
+        raise _ja_cadastrado(_campos_ja_cadastrados(sessao, dados) or ["email"]) from erro
+    except Exception:
+        sessao.rollback()
+        foto_conta.apagar(foto_id)
+        raise
     return usuario, email

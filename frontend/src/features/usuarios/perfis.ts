@@ -19,5 +19,7 @@ export const ROTULOS_STATUS_USUARIO: Record<StatusUsuario, string> = {
 
 export interface UsuarioResumo {
   nome: string
+  sobrenome?: string | null
   perfil: Perfil
+  foto_miniatura_url?: string | null
 }

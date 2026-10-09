@@ -48,12 +48,13 @@ export function PaginaRecuperarSenha() {
       )}
       <form onSubmit={enviar} noValidate className="flex flex-col gap-4">
         <CampoTexto
-          rotulo="Email"
-          type="email"
-          autoComplete="email"
-          inputMode="email"
-          erro={errors.email?.message}
-          {...register('email')}
+          rotulo="Email ou CPF"
+          autoComplete="username"
+          autoCapitalize="none"
+          spellCheck={false}
+          dica="O link para criar uma nova senha vai para o email da sua conta."
+          erro={errors.login?.message}
+          {...register('login')}
         />
         <Botao type="submit" carregando={solicitar.isPending}>
           Receber email

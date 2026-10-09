@@ -8,12 +8,16 @@ import { mockarApi, renderizarApp, sessaoTeste, usuarioTeste } from '../test/uti
 function usuarioGestao(dados: Partial<UsuarioGestao> = {}): UsuarioGestao {
   return {
     id: '00000000-0000-0000-0000-000000000099',
-    nome: 'Bruno Pendente',
+    nome: 'Bruno',
+    sobrenome: 'Pendente',
+    cpf: '529.982.247-25',
     email: 'bruno@exemplo.com',
     telefone: null,
     perfil: 'PADRAO',
     status: 'PENDENTE',
     criado_em: '2026-10-01T15:00:00Z',
+    foto_url: null,
+    foto_miniatura_url: null,
     ...dados,
   }
 }
@@ -66,8 +70,13 @@ describe('Home', () => {
     expect(
       await screen.findByRole('link', { name: /^Gerenciar usuários, 3 cadastros pendentes$/ }),
     ).toBeInTheDocument()
-    const menu = screen.getByRole('navigation', { name: 'Navegação principal' })
-    expect(within(menu).getByRole('link', { name: /^Usuários, 3 pendentes$/ })).toBeInTheDocument()
+    // Usuários fica no menu da conta, que mostra o total de pendências.
+    const conta = screen.getByRole('button', { name: /Ana Teste.*3 pendentes/ })
+    await userEvent.setup().click(conta)
+    expect(screen.getByRole('link', { name: /^Usuários, 3 pendentes$/ })).toHaveAttribute(
+      'href',
+      '/usuarios',
+    )
   })
 })
 
@@ -116,7 +125,13 @@ describe('Gerenciar usuários', () => {
     mockarApi({
       'POST /auth/refresh': { corpo: sessaoTeste('ADMIN') },
       'GET /usuarios': rotaUsuarios([
-        usuarioGestao({ id: eu.id, nome: eu.nome, perfil: 'ADMIN', status: 'ATIVO' }),
+        usuarioGestao({
+          id: eu.id,
+          nome: eu.nome,
+          sobrenome: null,
+          perfil: 'ADMIN',
+          status: 'ATIVO',
+        }),
       ]),
       [`PATCH /usuarios/${eu.id}`]: {
         status: 409,
@@ -130,6 +145,7 @@ describe('Gerenciar usuários', () => {
 
     const tabela = await screen.findByRole('table')
     expect(within(tabela).getByText('(você)')).toBeInTheDocument()
+    expect(within(tabela).getByText('CPF 529.982.247-25')).toBeInTheDocument()
     await pessoa.click(within(tabela).getByRole('button', { name: `Inativar: ${eu.nome}` }))
     const modal = screen.getByRole('dialog')
     await pessoa.click(within(modal).getByRole('button', { name: 'Inativar' }))
@@ -205,16 +221,21 @@ describe('Meu perfil', () => {
 
     expect(await screen.findByText('ana@exemplo.com')).toBeInTheDocument()
     expect(screen.getByText('Pessoa usuária', { selector: 'dd' })).toBeInTheDocument()
+    expect(screen.getByText('***.982.247-**', { selector: 'dd' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('CPF')).not.toBeInTheDocument()
 
     const nome = screen.getByLabelText('Nome')
     await pessoa.clear(nome)
     await pessoa.type(nome, 'Ana Nova')
-    await pessoa.type(screen.getByLabelText('Telefone (opcional)'), '24999998888')
+    const celular = screen.getByLabelText('Celular')
+    await pessoa.clear(celular)
+    await pessoa.type(celular, '24999998888')
     await pessoa.click(screen.getByRole('button', { name: 'Salvar dados' }))
 
     expect(await screen.findByText('Dados atualizados.')).toBeInTheDocument()
     expect(chamadas.find((c) => c.chave === 'PATCH /me')?.corpo).toEqual({
       nome: 'Ana Nova',
+      sobrenome: 'Souza',
       telefone: '(24) 99999-8888',
       cep: '25651-000',
       logradouro: 'Rua Afrânio de Melo Franco',
@@ -268,5 +289,55 @@ describe('Meu perfil', () => {
     const campo = screen.getByLabelText('Senha atual')
     await waitFor(() => expect(campo).toHaveAttribute('aria-invalid', 'true'))
     expect(campo).toHaveAccessibleDescription('Senha atual incorreta.')
+  })
+})
+
+describe('Dados do usuário', () => {
+  it('a pessoa administradora vê todos os dados da conta', async () => {
+    const pessoa = userEvent.setup()
+    const bruno = usuarioGestao()
+    const { chamadas } = mockarApi({
+      'POST /auth/refresh': { corpo: sessaoTeste('ADMIN') },
+      'GET /usuarios': rotaUsuarios([bruno]),
+      [`GET /usuarios/${bruno.id}`]: {
+        corpo: {
+          ...bruno,
+          telefone: '(24) 98888-7777',
+          cep: '25651-000',
+          logradouro: 'Rua Afrânio de Melo Franco',
+          numero: '333',
+          complemento: null,
+          bairro: 'Quitandinha',
+          cidade: 'Petrópolis',
+          uf: 'RJ',
+          email_verificado_em: '2026-10-02T12:00:00Z',
+          atualizado_em: '2026-10-03T12:00:00Z',
+          solicitacoes_abertas: [],
+        },
+      },
+    })
+    const { router } = renderizarApp('/usuarios')
+
+    const tabela = await screen.findByRole('table')
+    await pessoa.click(within(tabela).getByRole('link', { name: 'Ver dados: Bruno Pendente' }))
+
+    expect(await screen.findByRole('heading', { name: /Dados do\s*usuário/ })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe(`/usuarios/${bruno.id}`)
+    const pessoais = screen.getByRole('region', { name: 'Dados pessoais' })
+    expect(within(pessoais).getByText('529.982.247-25')).toBeInTheDocument()
+    expect(within(pessoais).getByText('Pendente')).toBeInTheDocument()
+    const endereco = screen.getByRole('region', { name: 'Endereço' })
+    expect(within(endereco).getByText('Rua Afrânio de Melo Franco, 333')).toBeInTheDocument()
+    expect(within(endereco).getByText('Petrópolis/RJ')).toBeInTheDocument()
+    expect(within(endereco).getByText('Não informado')).toBeInTheDocument() // complemento
+    expect(screen.getByText('(24) 98888-7777')).toBeInTheDocument()
+    expect(chamadas.filter((c) => c.chave === `GET /usuarios/${bruno.id}`)).toHaveLength(1)
+  })
+
+  it('colaborador que abre a rota vai para acesso negado', async () => {
+    mockarApi({ 'POST /auth/refresh': { corpo: sessaoTeste('COLABORADOR') } })
+    const { router } = renderizarApp('/usuarios/00000000-0000-0000-0000-000000000099')
+    expect(await screen.findByRole('heading', { name: 'Acesso negado' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/acesso-negado')
   })
 })

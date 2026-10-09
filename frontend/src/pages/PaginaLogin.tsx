@@ -34,15 +34,16 @@ export function PaginaLogin() {
   } = useForm<DadosLogin>({ resolver: zodResolver(esquemaLogin) })
 
   // Depois de entrar, <RotaSomenteAnonima> leva para a rota pedida antes do login.
-  const enviar = handleSubmit(async ({ email, senha }) => {
+  const enviar = handleSubmit(async ({ login, senha }) => {
     setErro(null)
     setEmailNaoVerificado(null)
     try {
-      await entrar(email, senha)
+      await entrar(login, senha)
     } catch (e) {
       if (e instanceof ErroApi && e.codigo === 'EMAIL_NAO_VERIFICADO') {
         setErro(e.message)
-        setEmailNaoVerificado(email.trim())
+        // Entrou com o CPF: o email não é conhecido aqui, a pessoa digita no reenvio.
+        setEmailNaoVerificado(login.includes('@') ? login.trim() : '')
       } else if (e instanceof ErroApi && e.codigo === 'CONTA_BLOQUEADA') {
         const segundos = Number(e.extras.segundos_restantes) || 300
         setMinutosBloqueio(Math.ceil(segundos / 60))
@@ -72,12 +73,12 @@ export function PaginaLogin() {
 
       <form onSubmit={enviar} noValidate className="flex flex-col gap-4">
         <CampoTexto
-          rotulo="Email"
-          type="email"
-          autoComplete="email"
-          inputMode="email"
-          erro={errors.email?.message}
-          {...register('email')}
+          rotulo="Email ou CPF"
+          autoComplete="username"
+          autoCapitalize="none"
+          spellCheck={false}
+          erro={errors.login?.message}
+          {...register('login')}
         />
         <div className="flex flex-col gap-1">
           <CampoSenha

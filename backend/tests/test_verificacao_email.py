@@ -14,7 +14,7 @@ from app.entities import (
 )
 from app.services import verificacao_email
 from app.services.email import Email
-from tests.conftest import ENDERECO
+from tests.conftest import CPF, ENDERECO, postar_cadastro
 
 CADASTRO = "/api/v1/auth/cadastro"
 VERIFICAR = "/api/v1/auth/verificar-email"
@@ -25,7 +25,10 @@ REDEFINIR = "/api/v1/auth/redefinir-senha"
 USUARIOS = "/api/v1/usuarios"
 
 DADOS = {
-    "nome": "Ana Souza",
+    "nome": "Ana",
+    "sobrenome": "Souza",
+    "cpf": CPF,
+    "telefone": "24988887777",
     "email": "ana@exemplo.com",
     "senha": "SenhaBoa123",
     "confirmar_senha": "SenhaBoa123",
@@ -40,12 +43,12 @@ def token_do_email(email: Email, rota: str = "verificar-email") -> str:
 
 
 def cadastrar(cliente, emails_enviados) -> str:
-    assert cliente.post(CADASTRO, json=DADOS).status_code == 201
+    assert postar_cadastro(cliente, DADOS).status_code == 201
     return token_do_email(emails_enviados[-1])
 
 
 def entrar(cliente, senha: str = DADOS["senha"]):
-    return cliente.post(LOGIN, json={"email": DADOS["email"], "senha": senha})
+    return cliente.post(LOGIN, json={"login": DADOS["email"], "senha": senha})
 
 
 class TestConfirmacao:
@@ -103,7 +106,7 @@ class TestLogin:
 
     def test_redefinir_senha_pelo_email_tambem_confirma(self, cliente, emails_enviados):
         cadastrar(cliente, emails_enviados)
-        cliente.post(RECUPERAR, json={"email": DADOS["email"]})
+        cliente.post(RECUPERAR, json={"login": DADOS["email"]})
         token = token_do_email(emails_enviados[-1], "redefinir-senha")
         cliente.post(
             REDEFINIR,

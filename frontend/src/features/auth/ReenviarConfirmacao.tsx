@@ -6,7 +6,7 @@ import { Alerta } from '../../components/Alerta'
 import { Botao } from '../../components/Botao'
 import { CampoTexto } from '../../components/formulario/CampoTexto'
 import { useReenviarVerificacao } from './api'
-import { esquemaRecuperarSenha, type DadosRecuperarSenha } from './esquemas'
+import { esquemaReenviarConfirmacao, type DadosReenviarConfirmacao } from './esquemas'
 
 /** Pede um novo link de confirmação de email. O email vem preenchido quando já é conhecido. */
 export function ReenviarConfirmacao({ email = '' }: { email?: string }) {
@@ -15,8 +15,8 @@ export function ReenviarConfirmacao({ email = '' }: { email?: string }) {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<DadosRecuperarSenha>({
-    resolver: zodResolver(esquemaRecuperarSenha),
+  } = useForm<DadosReenviarConfirmacao>({
+    resolver: zodResolver(esquemaReenviarConfirmacao),
     defaultValues: { email },
   })
 

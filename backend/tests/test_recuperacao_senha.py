@@ -14,7 +14,8 @@ VALIDAR = "/api/v1/auth/redefinir-senha/validar"
 REDEFINIR = "/api/v1/auth/redefinir-senha"
 
 MENSAGEM_NEUTRA = (
-    "Se este email estiver cadastrado, você vai receber um link para criar uma nova senha."
+    "Se este email ou CPF estiver cadastrado, você vai receber no email da conta "
+    "um link para criar uma nova senha."
 )
 
 
@@ -25,7 +26,7 @@ def token_do_email(email: Email) -> str:
 
 
 def pedir(cliente, email="pessoa@exemplo.com"):
-    return cliente.post(RECUPERAR, json={"email": email})
+    return cliente.post(RECUPERAR, json={"login": email})
 
 
 def redefinir(cliente, token, senha="NovaSenha456", confirmar=None):
@@ -91,9 +92,15 @@ class TestPedido:
         assert cliente.get(VALIDAR, params={"token": primeiro}).status_code == 400
         assert cliente.get(VALIDAR, params={"token": segundo}).status_code == 200
 
-    def test_email_invalido(self, cliente):
-        resposta = pedir(cliente, email="nao-e-email")
+    def test_login_vazio(self, cliente):
+        resposta = pedir(cliente, email=" ")
         assert resposta.status_code == 422
+
+    def test_texto_que_nao_e_email_nem_cpf_tem_resposta_neutra(self, cliente, emails_enviados):
+        resposta = pedir(cliente, email="nao-e-email")
+        assert resposta.status_code == 200
+        assert resposta.json()["mensagem"] == MENSAGEM_NEUTRA
+        assert emails_enviados == []
 
 
 class TestValidacaoERedefinicao:
@@ -139,7 +146,7 @@ class TestValidacaoERedefinicao:
         assert sessao.scalar(select(TokenRedefinicaoSenha)).usado_em is not None
 
         login = cliente.post(
-            "/api/v1/auth/login", json={"email": usuario.email, "senha": "NovaSenha456"}
+            "/api/v1/auth/login", json={"login": usuario.email, "senha": "NovaSenha456"}
         )
         assert login.status_code == 200
 

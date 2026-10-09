@@ -58,7 +58,7 @@ export function PaginaPrivacidade() {
       <Secao titulo="Dados de quem usa a plataforma">
         <Lista
           itens={[
-            'nome, email e telefone informados no cadastro;',
+            'nome, sobrenome, CPF, email, celular, endereço e foto informados no cadastro (o CPF completo só é visto por pessoas administradoras);',
             'senha, guardada apenas de forma cifrada (ninguém consegue lê-la);',
             'registros de uso: logins, alterações e visualizações de cadastros, com data, hora e endereço IP.',
           ]}
@@ -98,6 +98,8 @@ export function PaginaPrivacidade() {
           itens={[
             'Os mapas usam o OpenStreetMap: as imagens do mapa são baixadas dos servidores dele.',
             'O endereço aproximado de um avistamento é consultado no Nominatim (OpenStreetMap) a partir das coordenadas, sem nenhum dado da pessoa.',
+            'No cadastro de conta, o CEP digitado é consultado no ViaCEP para preencher o endereço.',
+            'Os emails da plataforma (confirmação de email e recuperação de senha) são enviados pelo Gmail.',
             'A fonte do site vem do Google Fonts, e o tradutor de Libras é o VLibras, do Governo Federal (carregado só quando você o aciona).',
           ]}
         />

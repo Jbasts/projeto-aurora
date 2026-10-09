@@ -3,7 +3,7 @@ from sqlalchemy import select
 
 from app.core.seguranca import criar_token, verificar_senha
 from app.entities import LogAuditoria, PerfilUsuario, StatusUsuario
-from tests.conftest import ENDERECO
+from tests.conftest import MEUS_DADOS
 
 USUARIOS = "/api/v1/usuarios"
 ME = "/api/v1/me"
@@ -69,7 +69,7 @@ class TestPermissoes:
     def test_meu_perfil_vale_para_todos_os_perfis(self, cliente, criar_usuario, perfil):
         usuario = criar_usuario(perfil=perfil)
         resposta = cliente.patch(
-            ME, json={"nome": "Nome Novo", **ENDERECO}, headers=cabecalho(usuario)
+            ME, json={"nome": "Nome Novo", **MEUS_DADOS}, headers=cabecalho(usuario)
         )
         assert resposta.status_code == 200
 
@@ -125,11 +125,15 @@ class TestListagem:
         assert set(corpo["itens"][0]) == {
             "id",
             "nome",
+            "sobrenome",
+            "cpf",
             "email",
             "telefone",
             "perfil",
             "status",
             "criado_em",
+            "foto_url",
+            "foto_miniatura_url",
         }
 
     def test_busca_por_nome_sem_acento_ou_por_email(self, cliente, admin, criar_usuario):
@@ -199,7 +203,7 @@ class TestAcoes:
         assert resposta.json()["status"] == "ATIVO"
 
         login = cliente.post(
-            "/api/v1/auth/login", json={"email": "novo@exemplo.com", "senha": "SenhaBoa123"}
+            "/api/v1/auth/login", json={"login": "novo@exemplo.com", "senha": "SenhaBoa123"}
         )
         assert login.status_code == 200
 
@@ -299,7 +303,7 @@ class TestMeuPerfil:
         usuario = criar_usuario(perfil=PADRAO)
         resposta = cliente.patch(
             ME,
-            json={"nome": "  Nome Novo ", "telefone": "24999998888", **ENDERECO},
+            json={"nome": "  Nome Novo ", **MEUS_DADOS, "telefone": "24999998888"},
             headers=cabecalho(usuario),
         )
         assert resposta.status_code == 200
@@ -312,7 +316,17 @@ class TestMeuPerfil:
         log = logs(sessao, "MEUS_DADOS")[0]
         # Só os nomes dos campos; complemento continua vazio e não entra.
         assert log.detalhes == {
-            "campos": ["nome", "telefone", "cep", "logradouro", "numero", "bairro", "cidade", "uf"]
+            "campos": [
+                "nome",
+                "sobrenome",
+                "telefone",
+                "cep",
+                "logradouro",
+                "numero",
+                "bairro",
+                "cidade",
+                "uf",
+            ]
         }
 
     def test_endereco_e_obrigatorio(self, cliente, criar_usuario):
@@ -320,6 +334,8 @@ class TestMeuPerfil:
         resposta = cliente.patch(ME, json={"nome": "Nome Novo"}, headers=cabecalho(usuario))
         assert resposta.status_code == 422
         assert {c["campo"] for c in resposta.json()["campos"]} == {
+            "sobrenome",
+            "telefone",
             "cep",
             "logradouro",
             "numero",
@@ -335,18 +351,19 @@ class TestMeuPerfil:
                 "nome": "Pessoa de Teste",
                 "email": "x@exemplo.com",
                 "perfil": "ADMIN",
-                **ENDERECO,
+                "cpf": "111.444.777-35",
+                **MEUS_DADOS,
             },
             headers=cabecalho(usuario),
         )
         assert resposta.status_code == 200
         sessao.refresh(usuario)
-        assert (usuario.email, usuario.perfil) == ("pessoa@exemplo.com", PADRAO)
+        assert (usuario.email, usuario.perfil, usuario.cpf) == ("pessoa@exemplo.com", PADRAO, None)
 
     def test_valida_nome_e_telefone(self, cliente, criar_usuario):
         usuario = criar_usuario()
         resposta = cliente.patch(
-            ME, json={"nome": " ", "telefone": "123", **ENDERECO}, headers=cabecalho(usuario)
+            ME, json={**MEUS_DADOS, "nome": " ", "telefone": "123"}, headers=cabecalho(usuario)
         )
         assert resposta.status_code == 422
         assert {c["campo"] for c in resposta.json()["campos"]} == {"nome", "telefone"}
@@ -400,3 +417,64 @@ class TestMeuPerfil:
         )
         assert resposta.status_code == 422
         assert [c["campo"] for c in resposta.json()["campos"]] == [campo]
+
+
+class TestCpf:
+    def test_a_propria_pessoa_ve_o_cpf_mascarado(self, cliente, criar_usuario):
+        usuario = criar_usuario(cpf="52998224725")
+        corpo = cliente.get(AUTH_ME, headers=cabecalho(usuario)).json()
+        assert corpo["cpf_mascarado"] == "***.982.247-**"
+        assert "cpf" not in corpo
+
+    def test_admin_ve_o_cpf_completo_e_busca_pelo_sobrenome(self, cliente, admin, criar_usuario):
+        ana = criar_usuario(email="ana@exemplo.com", nome="Ana", cpf="52998224725")
+        ana.sobrenome = "Conceição"
+        resposta = cliente.get(
+            USUARIOS, params={"busca": "ana conceicao"}, headers=cabecalho(admin)
+        )
+        assert [(u["sobrenome"], u["cpf"]) for u in resposta.json()["itens"]] == [
+            ("Conceição", "529.982.247-25")
+        ]
+
+
+class TestDetalhe:
+    def test_admin_ve_todos_os_dados_e_gera_auditoria(self, cliente, admin, criar_usuario, sessao):
+        ana = criar_usuario(email="ana@exemplo.com", nome="Ana", perfil=PADRAO, cpf="52998224725")
+        for campo, valor in {
+            **MEUS_DADOS,
+            "telefone": "(24) 98888-7777",
+            "cep": "25651-000",
+        }.items():
+            setattr(ana, campo, valor)
+        sessao.flush()
+
+        resposta = cliente.get(f"{USUARIOS}/{ana.id}", headers=cabecalho(admin))
+        assert resposta.status_code == 200
+        corpo = resposta.json()
+        assert corpo["nome"] == "Ana"
+        assert corpo["sobrenome"] == "Souza"
+        assert corpo["cpf"] == "529.982.247-25"
+        assert corpo["telefone"] == "(24) 98888-7777"
+        assert (corpo["cep"], corpo["numero"], corpo["cidade"]) == (
+            "25651-000",
+            "333",
+            "Petrópolis",
+        )
+        assert corpo["email_verificado_em"] is not None
+        assert "senha_hash" not in corpo
+
+        log = logs(sessao, "USUARIO_VISUALIZADO")[0]
+        assert (log.usuario_id, log.entidade_id, log.detalhes) == (admin.id, str(ana.id), None)
+
+    @pytest.mark.parametrize("perfil", [COLABORADOR, PADRAO])
+    def test_somente_admin(self, cliente, criar_usuario, perfil):
+        outra = criar_usuario(email="outra@exemplo.com")
+        usuario = criar_usuario(email="eu@exemplo.com", perfil=perfil)
+        resposta = cliente.get(f"{USUARIOS}/{outra.id}", headers=cabecalho(usuario))
+        assert resposta.status_code == 403
+
+    def test_inexistente(self, cliente, admin):
+        resposta = cliente.get(
+            f"{USUARIOS}/00000000-0000-0000-0000-000000000000", headers=cabecalho(admin)
+        )
+        assert resposta.status_code == 404

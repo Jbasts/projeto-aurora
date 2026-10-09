@@ -4,13 +4,16 @@ import { ErroApi, requisitar } from '../../api/cliente'
 import type { DadosCadastro, DadosRecuperarSenha, DadosRedefinirSenha } from './esquemas'
 import type { MensagemResposta } from './tipos'
 
+/** O cadastro vai como formulário multipart: os campos e a foto da conta. */
 export function useCadastrar() {
   return useMutation({
-    mutationFn: (dados: DadosCadastro) =>
-      requisitar<MensagemResposta>('/auth/cadastro', {
-        metodo: 'POST',
-        corpo: { ...dados, telefone: dados.telefone || null },
-      }),
+    mutationFn: (dados: DadosCadastro) => {
+      const formulario = new FormData()
+      for (const [campo, valor] of Object.entries(dados)) {
+        formulario.append(campo, valor instanceof File ? valor : String(valor ?? ''))
+      }
+      return requisitar<MensagemResposta>('/auth/cadastro', { metodo: 'POST', corpo: formulario })
+    },
   })
 }
 
@@ -34,6 +37,22 @@ export function useVerificarEmail(token: string) {
     queryKey: ['auth', 'verificar-email', token],
     queryFn: () =>
       requisitar<MensagemResposta>('/auth/verificar-email', { metodo: 'POST', corpo: { token } }),
+    enabled: token.length > 0,
+    retry: false,
+    staleTime: Infinity,
+    gcTime: Infinity,
+  })
+}
+
+/** Confirma a troca de email ao abrir o link enviado ao email novo (uma vez por token). */
+export function useConfirmarNovoEmail(token: string) {
+  return useQuery({
+    queryKey: ['auth', 'confirmar-novo-email', token],
+    queryFn: () =>
+      requisitar<MensagemResposta>('/auth/confirmar-novo-email', {
+        metodo: 'POST',
+        corpo: { token },
+      }),
     enabled: token.length > 0,
     retry: false,
     staleTime: Infinity,

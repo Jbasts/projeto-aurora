@@ -32,18 +32,65 @@ export const telefone = z
     return digitos === 0 || digitos === 10 || digitos === 11
   }, 'Informe o telefone com DDD, no formato (00) 00000-0000.')
 
+export const celular = z
+  .string()
+  .trim()
+  .refine(
+    (t) => t.replace(/\D/g, '').length === 11,
+    'Informe o celular com DDD, no formato (00) 00000-0000.',
+  )
+
+export const sobrenome = z
+  .string()
+  .trim()
+  .min(2, 'Informe seu sobrenome.')
+  .max(150, 'Use no máximo 150 caracteres.')
+
+/** Mesma regra de app/schemas/comum.py: 11 dígitos, não repetidos, dígitos verificadores. */
+export function cpfValido(valor: string): boolean {
+  const d = valor.replace(/\D/g, '')
+  if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false
+  const verificador = (tamanho: number) => {
+    let soma = 0
+    for (let i = 0; i < tamanho; i++) soma += Number(d[i]) * (tamanho + 1 - i)
+    const resto = (soma * 10) % 11
+    return resto === 10 ? 0 : resto
+  }
+  return verificador(9) === Number(d[9]) && verificador(10) === Number(d[10])
+}
+
+const cpf = z.string().trim().refine(cpfValido, 'Informe um CPF válido.')
+
+/** Email ou CPF (login e recuperação de senha). */
+export function emailOuCpfValido(valor: string): boolean {
+  const texto = valor.trim()
+  return texto.includes('@') ? z.email().safeParse(texto).success : cpfValido(texto)
+}
+
+export const TIPOS_FOTO_CONTA = ['image/jpeg', 'image/png', 'image/webp']
+export const TAMANHO_MAXIMO_FOTO_CONTA = 5 * 1024 * 1024
+
+/** Foto da conta: mesmas regras do backend (app/services/fotos.py). */
+export const fotoConta = z
+  .instanceof(File, { message: 'Envie uma foto sua.' })
+  .refine((f) => TIPOS_FOTO_CONTA.includes(f.type), 'Envie uma foto em JPG, PNG ou WEBP.')
+  .refine((f) => f.size <= TAMANHO_MAXIMO_FOTO_CONTA, 'A foto deve ter no máximo 5 MB.')
+
 export const MENSAGEM_SENHAS_DIFERENTES = 'As senhas não são iguais.'
 
 export const esquemaLogin = z.object({
-  email: z.string().trim().min(1, 'Informe seu email.'),
+  login: z.string().trim().min(1, 'Informe seu email ou CPF.'),
   senha: z.string().min(1, 'Informe sua senha.'),
 })
 
 export const esquemaCadastro = z
   .object({
     nome: z.string().trim().min(2, 'Informe seu nome.').max(150, 'Use no máximo 150 caracteres.'),
+    sobrenome,
+    cpf,
     email,
-    telefone,
+    telefone: celular,
+    foto: fotoConta,
     senha: senhaForte,
     confirmar_senha: z.string(),
     ...camposEndereco,
@@ -53,7 +100,15 @@ export const esquemaCadastro = z
     path: ['confirmar_senha'],
   })
 
-export const esquemaRecuperarSenha = z.object({ email })
+export const esquemaRecuperarSenha = z.object({
+  login: z
+    .string()
+    .trim()
+    .min(1, 'Informe seu email ou CPF.')
+    .refine(emailOuCpfValido, 'Informe um email ou CPF válido.'),
+})
+
+export const esquemaReenviarConfirmacao = z.object({ email })
 
 export const esquemaRedefinirSenha = z
   .object({ senha: senhaForte, confirmar_senha: z.string() })
@@ -65,4 +120,5 @@ export const esquemaRedefinirSenha = z
 export type DadosLogin = z.infer<typeof esquemaLogin>
 export type DadosCadastro = z.infer<typeof esquemaCadastro>
 export type DadosRecuperarSenha = z.infer<typeof esquemaRecuperarSenha>
+export type DadosReenviarConfirmacao = z.infer<typeof esquemaReenviarConfirmacao>
 export type DadosRedefinirSenha = z.infer<typeof esquemaRedefinirSenha>

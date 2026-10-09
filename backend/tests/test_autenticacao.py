@@ -13,7 +13,7 @@ from app.core.permissoes import exigir_perfil
 from app.core.seguranca import criar_token, verificar_senha
 from app.db.sessao import obter_sessao
 from app.entities import LogAuditoria, PerfilUsuario, StatusUsuario, Usuario
-from tests.conftest import ENDERECO
+from tests.conftest import CPF, ENDERECO, postar_cadastro
 
 LOGIN = "/api/v1/auth/login"
 REFRESH = "/api/v1/auth/refresh"
@@ -26,7 +26,7 @@ MINUTOS_BLOQUEIO = obter_configuracoes().MINUTOS_BLOQUEIO
 
 
 def entrar(cliente: TestClient, email="pessoa@exemplo.com", senha="SenhaBoa123"):
-    return cliente.post(LOGIN, json={"email": email, "senha": senha})
+    return cliente.post(LOGIN, json={"login": email, "senha": senha})
 
 
 def acoes_auditadas(sessao: Session) -> list[tuple[str, str | None]]:
@@ -62,7 +62,7 @@ class TestLogin:
         resposta = entrar(cliente, email="ninguem@exemplo.com")
         assert resposta.status_code == 401
         assert resposta.json() == {
-            "detail": "Email ou senha incorretos.",
+            "detail": "Email, CPF ou senha incorretos.",
             "codigo": "CREDENCIAIS_INVALIDAS",
         }
         assert acoes_auditadas(sessao) == [("LOGIN_FALHA", "EMAIL_DESCONHECIDO")]
@@ -73,7 +73,7 @@ class TestLogin:
         usuario = criar_usuario()
         resposta = entrar(cliente, senha="errada123")
         assert resposta.status_code == 401
-        assert resposta.json()["detail"] == "Email ou senha incorretos."
+        assert resposta.json()["detail"] == "Email, CPF ou senha incorretos."
         sessao.refresh(usuario)
         assert usuario.tentativas_falhas == 1
 
@@ -255,7 +255,9 @@ class TestExigirPerfil:
 
 class TestCadastro:
     DADOS = {
-        "nome": "Ana Souza",
+        "nome": "Ana",
+        "sobrenome": " Souza ",
+        "cpf": CPF,
         "email": "Ana.Souza@Exemplo.com",
         "telefone": "24988887777",
         "senha": "SenhaBoa123",
@@ -264,7 +266,7 @@ class TestCadastro:
     }
 
     def test_cria_conta_padrao_e_pendente(self, cliente, sessao):
-        resposta = cliente.post(CADASTRO, json=self.DADOS)
+        resposta = postar_cadastro(cliente, self.DADOS)
         assert resposta.status_code == 201
         assert "Confirme seu email" in resposta.json()["mensagem"]
 
@@ -273,10 +275,11 @@ class TestCadastro:
         assert usuario.status == StatusUsuario.PENDENTE
         assert usuario.email_verificado_em is None
         assert usuario.telefone == "(24) 98888-7777"
+        assert (usuario.nome, usuario.sobrenome, usuario.cpf) == ("Ana", "Souza", "52998224725")
         assert verificar_senha("SenhaBoa123", usuario.senha_hash)
 
     def test_guarda_o_endereco_normalizado(self, cliente, sessao):
-        cliente.post(CADASTRO, json=self.DADOS)
+        postar_cadastro(cliente, self.DADOS)
         usuario = sessao.scalar(select(Usuario))
         assert (
             usuario.cep,
@@ -297,25 +300,36 @@ class TestCadastro:
         )
 
     def test_envia_email_de_confirmacao(self, cliente, emails_enviados):
-        cliente.post(CADASTRO, json=self.DADOS)
+        postar_cadastro(cliente, self.DADOS)
         assert len(emails_enviados) == 1
         assert emails_enviados[0].destinatario == "ana.souza@exemplo.com"
         assert "/verificar-email?token=" in emails_enviados[0].texto
 
     def test_ignora_tentativa_de_escolher_perfil(self, cliente, sessao):
-        cliente.post(CADASTRO, json={**self.DADOS, "perfil": "ADMIN", "status": "ATIVO"})
+        postar_cadastro(cliente, {**self.DADOS, "perfil": "ADMIN", "status": "ATIVO"})
         usuario = sessao.scalar(select(Usuario))
         assert usuario.perfil == PerfilUsuario.PADRAO
         assert usuario.status == StatusUsuario.PENDENTE
 
     def test_email_ja_cadastrado(self, cliente, criar_usuario):
         criar_usuario(email="ana.souza@exemplo.com")
-        resposta = cliente.post(CADASTRO, json=self.DADOS)
+        resposta = postar_cadastro(cliente, self.DADOS)
         assert resposta.status_code == 422
         assert resposta.json()["campos"] == [
             {
                 "campo": "email",
                 "mensagem": "Este email já está cadastrado. Faça login ou recupere sua senha.",
+            }
+        ]
+
+    def test_cpf_ja_cadastrado(self, cliente, criar_usuario):
+        criar_usuario(email="outra@exemplo.com", cpf="52998224725")
+        resposta = postar_cadastro(cliente, self.DADOS)
+        assert resposta.status_code == 422
+        assert resposta.json()["campos"] == [
+            {
+                "campo": "cpf",
+                "mensagem": "Este CPF já está cadastrado. Faça login ou recupere sua senha.",
             }
         ]
 
@@ -328,6 +342,12 @@ class TestCadastro:
             ({"confirmar_senha": "OutraSenha123"}, "confirmar_senha"),
             ({"email": "nao-e-email"}, "email"),
             ({"telefone": "123"}, "telefone"),
+            ({"telefone": "2422334455"}, "telefone"),  # fixo: precisa ser celular
+            ({"telefone": None}, "telefone"),
+            ({"sobrenome": " "}, "sobrenome"),
+            ({"cpf": "529.982.247-24"}, "cpf"),
+            ({"cpf": "111.111.111-11"}, "cpf"),
+            ({"cpf": ""}, "cpf"),
             ({"nome": " "}, "nome"),
             ({"cep": "2565100"}, "cep"),
             ({"cep": ""}, "cep"),
@@ -338,7 +358,7 @@ class TestCadastro:
         ],
     )
     def test_validacoes(self, cliente, alteracao, campo):
-        resposta = cliente.post(CADASTRO, json={**self.DADOS, **alteracao})
+        resposta = postar_cadastro(cliente, {**self.DADOS, **alteracao})
         assert resposta.status_code == 422
         corpo = resposta.json()
         assert corpo["codigo"] == "VALIDACAO"

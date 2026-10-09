@@ -19,6 +19,8 @@ import { RequisitosSenha } from '../components/formulario/RequisitosSenha'
 import { TituloPagina } from '../components/TituloPagina'
 import { useAutenticacao, useUsuarioLogado } from '../contexts/autenticacao'
 import { CamposEndereco } from '../features/enderecos/CamposEndereco'
+import { AlteracaoEmailCpf } from '../features/usuarios/AlteracaoEmailCpf'
+import { FotoDaConta } from '../features/usuarios/FotoDaConta'
 import { enderecoInicial, NOMES_CAMPOS_ENDERECO } from '../features/enderecos/esquemas'
 import { useAtualizarMeusDados, useTrocarSenha } from '../features/usuarios/api'
 import {
@@ -82,6 +84,7 @@ function SecaoDados() {
     resolver: zodResolver(esquemaMeusDados),
     defaultValues: {
       nome: usuario.nome,
+      sobrenome: usuario.sobrenome ?? '',
       telefone: usuario.telefone ?? '',
       ...enderecoInicial(usuario),
     },
@@ -99,7 +102,11 @@ function SecaoDados() {
       atualizarUsuario(await atualizar.mutateAsync(dados))
       setAviso({ tipo: 'sucesso', texto: 'Dados atualizados.' })
     } catch (e) {
-      const geral = aplicarErrosDaApi(e, ['nome', 'telefone', ...NOMES_CAMPOS_ENDERECO], setError)
+      const geral = aplicarErrosDaApi(
+        e,
+        ['nome', 'sobrenome', 'telefone', ...NOMES_CAMPOS_ENDERECO],
+        setError,
+      )
       if (geral) setAviso({ tipo: 'erro', texto: geral })
     }
   })
@@ -112,32 +119,44 @@ function SecaoDados() {
         Dados da conta
       </h2>
 
+      <FotoDaConta />
+
       <dl className="grid gap-3 text-sm sm:grid-cols-2">
         <div>
           <dt className="font-medium text-texto-suave">Email</dt>
           <dd className="break-all text-texto">{usuario.email}</dd>
         </div>
         <div>
+          <dt className="font-medium text-texto-suave">CPF</dt>
+          <dd className="text-texto">{usuario.cpf_mascarado ?? 'Não informado'}</dd>
+        </div>
+        <div>
           <dt className="font-medium text-texto-suave">Perfil de acesso</dt>
           <dd className="text-texto">{ROTULOS_PERFIL[usuario.perfil]}</dd>
         </div>
       </dl>
-      <p className="text-sm text-texto-suave">
-        Para mudar o email ou o perfil de acesso, fale com uma pessoa administradora.
-      </p>
+      <AlteracaoEmailCpf />
 
       {aviso && <Alerta tipo={aviso.tipo}>{aviso.texto}</Alerta>}
 
       <FormProvider {...formulario}>
         <form onSubmit={enviar} noValidate className="flex flex-col gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <CampoTexto
+              rotulo="Nome"
+              autoComplete="given-name"
+              erro={errors.nome?.message}
+              {...register('nome')}
+            />
+            <CampoTexto
+              rotulo="Sobrenome"
+              autoComplete="family-name"
+              erro={errors.sobrenome?.message}
+              {...register('sobrenome')}
+            />
+          </div>
           <CampoTexto
-            rotulo="Nome"
-            autoComplete="name"
-            erro={errors.nome?.message}
-            {...register('nome')}
-          />
-          <CampoTexto
-            rotulo="Telefone (opcional)"
+            rotulo="Celular"
             type="tel"
             autoComplete="tel-national"
             inputMode="tel"

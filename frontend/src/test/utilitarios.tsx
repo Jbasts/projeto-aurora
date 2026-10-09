@@ -35,7 +35,13 @@ export function mockarApi(rotasApi: Record<string, Manipulador>) {
     vi.fn(async (entrada: string, init: RequestInit = {}) => {
       const url = new URL(entrada, 'http://localhost')
       const chave = `${init.method ?? 'GET'} ${url.pathname.replace('/api/v1', '')}`
-      const corpo = typeof init.body === 'string' ? JSON.parse(init.body) : undefined
+      // JSON vira objeto; FormData (cadastro e fotos) vira { campo: valor ou File }.
+      const corpo =
+        typeof init.body === 'string'
+          ? JSON.parse(init.body)
+          : init.body instanceof FormData
+            ? Object.fromEntries(init.body.entries())
+            : undefined
       chamadas.push({
         chave,
         corpo,
@@ -64,8 +70,12 @@ export function usuarioTeste(perfil: Perfil = 'COLABORADOR'): Usuario {
   return {
     id: '00000000-0000-0000-0000-000000000001',
     nome: 'Ana Teste',
+    sobrenome: 'Souza',
     email: 'ana@exemplo.com',
-    telefone: null,
+    foto_url: null,
+    foto_miniatura_url: null,
+    telefone: '(24) 98888-7777',
+    cpf_mascarado: '***.982.247-**',
     cep: '25651-000',
     logradouro: 'Rua Afrânio de Melo Franco',
     numero: '333',
@@ -75,6 +85,8 @@ export function usuarioTeste(perfil: Perfil = 'COLABORADOR'): Usuario {
     uf: 'RJ',
     perfil,
     status: 'ATIVO',
+    solicitacao_email: null,
+    solicitacao_cpf: null,
   }
 }
 

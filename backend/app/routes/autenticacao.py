@@ -1,6 +1,16 @@
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Query, Request, Response, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Cookie,
+    Depends,
+    Form,
+    Query,
+    Request,
+    Response,
+    status,
+)
 from sqlalchemy.orm import Session
 
 from app.controllers import autenticacao as controller
@@ -9,10 +19,11 @@ from app.core.permissoes import ip_da_requisicao, obter_usuario_atual
 from app.db.sessao import obter_sessao
 from app.entities import Usuario
 from app.schemas.autenticacao import (
-    CadastroEntrada,
+    CadastroFormulario,
     EmailEntrada,
     LoginEntrada,
     MensagemSaida,
+    RecuperarSenhaEntrada,
     RedefinirSenhaEntrada,
     SessaoSaida,
     TokenEntrada,
@@ -20,6 +31,7 @@ from app.schemas.autenticacao import (
     ValidacaoTokenSaida,
 )
 from app.services.email import EnviadorEmail, obter_enviador_email
+from app.services.fotos import ler_arquivo
 
 router = APIRouter(prefix="/auth", tags=["autenticacao"])
 
@@ -54,18 +66,28 @@ def logout(response: Response) -> None:
 @limiter.limit(LIMITE_AUTH)
 def cadastro(
     request: Request,
-    dados: CadastroEntrada,
+    dados: Annotated[CadastroFormulario, Form()],
     tarefas: BackgroundTasks,
     sessao: SessaoBanco,
     enviador: Annotated[EnviadorEmail, Depends(obter_enviador_email)],
 ) -> MensagemSaida:
-    return controller.cadastrar(sessao, dados, tarefas, enviador)
+    """Formulário multipart: os campos do cadastro e a foto da conta (obrigatória)."""
+    foto = ler_arquivo(dados.foto.file, "foto")
+    return controller.cadastrar(sessao, dados, foto, tarefas, enviador)
 
 
 @router.post("/verificar-email", response_model=MensagemSaida)
 @limiter.limit(LIMITE_AUTH)
 def verificar_email(request: Request, dados: TokenEntrada, sessao: SessaoBanco) -> MensagemSaida:
     return controller.verificar_email(sessao, dados, ip_da_requisicao(request))
+
+
+@router.post("/confirmar-novo-email", response_model=MensagemSaida)
+@limiter.limit(LIMITE_AUTH)
+def confirmar_novo_email(
+    request: Request, dados: TokenEntrada, sessao: SessaoBanco
+) -> MensagemSaida:
+    return controller.confirmar_troca_email(sessao, dados, ip_da_requisicao(request))
 
 
 @router.post("/reenviar-verificacao", response_model=MensagemSaida)
@@ -84,7 +106,7 @@ def reenviar_verificacao(
 @limiter.limit(LIMITE_AUTH)
 def recuperar_senha(
     request: Request,
-    dados: EmailEntrada,
+    dados: RecuperarSenhaEntrada,
     tarefas: BackgroundTasks,
     sessao: SessaoBanco,
     enviador: Annotated[EnviadorEmail, Depends(obter_enviador_email)],

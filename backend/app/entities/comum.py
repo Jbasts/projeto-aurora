@@ -19,6 +19,19 @@ class StatusUsuario(enum.StrEnum):
     INATIVO = "INATIVO"
 
 
+class TipoSolicitacao(enum.StrEnum):
+    EMAIL = "EMAIL"
+    CPF = "CPF"
+
+
+class StatusSolicitacao(enum.StrEnum):
+    AGUARDANDO_EMAIL = "AGUARDANDO_EMAIL"  # troca de email: falta abrir o link no email novo
+    PENDENTE = "PENDENTE"  # esperando a pessoa administradora
+    APROVADA = "APROVADA"
+    RECUSADA = "RECUSADA"
+    CANCELADA = "CANCELADA"
+
+
 class StatusPessoa(enum.StrEnum):
     ATIVA = "ATIVA"
     INATIVA = "INATIVA"

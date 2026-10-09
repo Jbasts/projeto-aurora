@@ -89,7 +89,7 @@ describe('Logs de auditoria', () => {
     expect(tabela.getByText('Perfil de acesso alterado')).toBeInTheDocument()
     expect(tabela.getByText(/Usuário: Bia Nova/)).toBeInTheDocument()
     expect(tabela.getByText('De Pessoa usuária para Pessoa colaboradora')).toBeInTheDocument()
-    expect(tabela.getByText('Motivo: email não cadastrado')).toBeInTheDocument()
+    expect(tabela.getByText('Motivo: email ou CPF não cadastrado')).toBeInTheDocument()
     expect(tabela.getByText('Não identificado')).toBeInTheDocument()
     expect(screen.getByText(/Total de registros:/)).toHaveTextContent('3')
 

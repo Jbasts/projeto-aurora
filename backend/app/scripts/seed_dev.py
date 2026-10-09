@@ -27,6 +27,7 @@ from app.entities import (
     StatusUsuario,
     Usuario,
 )
+from app.schemas.comum import digitos_verificadores_cpf
 
 SEMENTE = 42
 SENHA_CONTAS_TESTE = "Senha12345"
@@ -123,9 +124,16 @@ def _telefone(aleatorio: random.Random) -> str:
     return f"(24) 9{aleatorio.randint(8000, 9999)}-{aleatorio.randint(0, 9999):04d}"
 
 
+def _cpf(aleatorio: random.Random) -> str:
+    """CPF fictício com dígitos verificadores válidos (só os 11 dígitos)."""
+    base = "".join(str(aleatorio.randint(0, 9)) for _ in range(9))
+    return base + digitos_verificadores_cpf(base + "00")
+
+
 def _criar_contas(sessao: Session) -> list[Usuario]:
     """Cria as contas de teste que ainda não existem e devolve as que podem registrar dados."""
     senha_hash = gerar_hash_senha(SENHA_CONTAS_TESTE)
+    aleatorio = random.Random(SEMENTE)
     for nome, email, perfil, status in CONTAS_TESTE:
         if sessao.scalar(select(Usuario).where(Usuario.email == email)) is None:
             sessao.add(
@@ -136,6 +144,9 @@ def _criar_contas(sessao: Session) -> list[Usuario]:
                     perfil=perfil,
                     status=status,
                     email_verificado_em=datetime.now(UTC),
+                    sobrenome="Fictícia",
+                    cpf=_cpf(aleatorio),
+                    telefone=_telefone(aleatorio),
                     **ENDERECO_CONTAS_TESTE,
                 )
             )

@@ -17,21 +17,34 @@ VALIDADE_SEGUNDOS = 60 * 60
 JANELA_SEGUNDOS = 10 * 60
 
 
-def url_assinada(foto_id: uuid.UUID, variante: Variante, agora: datetime | None = None) -> str:
-    """URL de /arquivos/{id} válida por 1 h (até 1 h 10 min), para usar direto em <img>."""
+# Fotos das contas são assinadas com um prefixo: a assinatura de uma não serve para a outra rota.
+PREFIXO_CONTA = "conta:"
+
+
+def _assinar(caminho: str, chave: str, variante: Variante, agora: datetime | None) -> str:
     agora = agora or datetime.now(UTC)
     expira = math.ceil((agora.timestamp() + VALIDADE_SEGUNDOS) / JANELA_SEGUNDOS) * JANELA_SEGUNDOS
-    assinatura = assinatura_arquivo(str(foto_id), variante, expira)
-    return (
-        f"{PREFIXO_API}/arquivos/{foto_id}"
-        f"?variante={variante}&exp={expira}&assinatura={assinatura}"
-    )
+    assinatura = assinatura_arquivo(chave, variante, expira)
+    return f"{PREFIXO_API}{caminho}?variante={variante}&exp={expira}&assinatura={assinatura}"
+
+
+def url_assinada(foto_id: uuid.UUID, variante: Variante, agora: datetime | None = None) -> str:
+    """URL de /arquivos/{id} válida por 1 h (até 1 h 10 min), para usar direto em <img>."""
+    return _assinar(f"/arquivos/{foto_id}", str(foto_id), variante, agora)
+
+
+def url_assinada_conta(
+    foto_id: uuid.UUID, variante: Variante, agora: datetime | None = None
+) -> str:
+    """Foto de uma conta: /arquivos/contas/{id}, com a mesma validade."""
+    return _assinar(f"/arquivos/contas/{foto_id}", PREFIXO_CONTA + str(foto_id), variante, agora)
 
 
 def exigir_assinatura_valida(
-    foto_id: uuid.UUID, variante: Variante, expira: int, assinatura: str
+    foto_id: uuid.UUID, variante: Variante, expira: int, assinatura: str, conta: bool = False
 ) -> None:
-    if not assinatura_arquivo_valida(str(foto_id), variante, expira, assinatura):
+    chave = (PREFIXO_CONTA if conta else "") + str(foto_id)
+    if not assinatura_arquivo_valida(chave, variante, expira, assinatura):
         raise ErroApi(
             status.HTTP_403_FORBIDDEN,
             "SEM_PERMISSAO",

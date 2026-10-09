@@ -1,6 +1,7 @@
 import uuid
 from io import BytesIO
 from pathlib import Path
+from typing import BinaryIO
 
 from fastapi import status
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -30,12 +31,12 @@ MENSAGEM_TAMANHO = "A foto deve ter no máximo 5 MB."
 Image.MAX_IMAGE_PIXELS = MAXIMO_PIXELS
 
 
-def erro_foto(mensagem: str) -> ErroApi:
+def erro_foto(mensagem: str, campo: str = "arquivo") -> ErroApi:
     return ErroApi(
         status.HTTP_422_UNPROCESSABLE_ENTITY,
         "VALIDACAO",
         "Dados inválidos.",
-        campos=[{"campo": "arquivo", "mensagem": mensagem}],
+        campos=[{"campo": campo, "mensagem": mensagem}],
     )
 
 
@@ -45,23 +46,32 @@ def _webp(imagem: Image.Image) -> bytes:
     return saida.getvalue()
 
 
-def processar_imagem(dados: bytes) -> tuple[bytes, bytes]:
+def ler_arquivo(arquivo: BinaryIO, campo: str = "arquivo") -> bytes:
+    """Lê no máximo 1 byte além do limite: arquivos enormes não ocupam a memória inteira."""
+    dados = arquivo.read(TAMANHO_MAXIMO_BYTES + 1)
+    if len(dados) > TAMANHO_MAXIMO_BYTES:
+        raise erro_foto(MENSAGEM_TAMANHO, campo)
+    return dados
+
+
+def processar_imagem(dados: bytes, campo: str = "arquivo") -> tuple[bytes, bytes]:
     """Valida e devolve (foto até 1600 px, miniatura até 400 px), ambas em WEBP.
 
     Corrige a rotação pela orientação EXIF e descarta todos os metadados (EXIF tem GPS).
+    `campo` é o nome do campo do formulário nos erros de validação.
     """
     if len(dados) > TAMANHO_MAXIMO_BYTES:
-        raise erro_foto(MENSAGEM_TAMANHO)
+        raise erro_foto(MENSAGEM_TAMANHO, campo)
     try:
         imagem = Image.open(BytesIO(dados))
         formato = imagem.format
         if formato not in FORMATOS_ACEITOS:
-            raise erro_foto(MENSAGEM_FORMATO)
+            raise erro_foto(MENSAGEM_FORMATO, campo)
         if imagem.width * imagem.height > MAXIMO_PIXELS:
-            raise erro_foto("A foto tem resolução grande demais.")
+            raise erro_foto("A foto tem resolução grande demais.", campo)
         imagem = ImageOps.exif_transpose(imagem)
     except (UnidentifiedImageError, Image.DecompressionBombError, OSError, SyntaxError) as erro:
-        raise erro_foto(MENSAGEM_FORMATO) from erro
+        raise erro_foto(MENSAGEM_FORMATO, campo) from erro
 
     tem_transparencia = imagem.mode in ("RGBA", "LA", "PA") or "transparency" in imagem.info
     modo = "RGBA" if tem_transparencia else "RGB"
@@ -80,7 +90,7 @@ def processar_imagem(dados: bytes) -> tuple[bytes, bytes]:
 # --- Arquivos em disco (UPLOAD_DIR nunca é servido diretamente) ---
 
 
-def _diretorio() -> Path:
+def diretorio_uploads() -> Path:
     diretorio = Path(obter_configuracoes().UPLOAD_DIR)
     diretorio.mkdir(parents=True, exist_ok=True)
     return diretorio
@@ -88,12 +98,12 @@ def _diretorio() -> Path:
 
 def caminho_arquivo(foto: Foto, variante: Variante) -> Path:
     nome = foto.caminho_miniatura if variante == "miniatura" else foto.caminho
-    return _diretorio() / Path(nome).name
+    return diretorio_uploads() / Path(nome).name
 
 
-def _apagar_arquivos(*nomes: str) -> None:
+def apagar_arquivos(*nomes: str) -> None:
     for nome in nomes:
-        (_diretorio() / Path(nome).name).unlink(missing_ok=True)
+        (diretorio_uploads() / Path(nome).name).unlink(missing_ok=True)
 
 
 # --- Regras ---
@@ -132,7 +142,7 @@ def enviar(
     original, miniatura = processar_imagem(dados)
     foto_id = uuid.uuid4()
     nome, nome_miniatura = f"{foto_id}.webp", f"{foto_id}_miniatura.webp"
-    diretorio = _diretorio()
+    diretorio = diretorio_uploads()
     (diretorio / nome).write_bytes(original)
     (diretorio / nome_miniatura).write_bytes(miniatura)
 
@@ -171,11 +181,11 @@ def enviar(
         sessao.commit()
     except Exception:
         sessao.rollback()
-        _apagar_arquivos(nome, nome_miniatura)
+        apagar_arquivos(nome, nome_miniatura)
         raise
 
     if anterior is not None:
-        _apagar_arquivos(anterior.caminho, anterior.caminho_miniatura)
+        apagar_arquivos(anterior.caminho, anterior.caminho_miniatura)
     return foto
 
 
@@ -203,4 +213,4 @@ def remover(
     )
     sessao.commit()
     # Só apaga do disco depois que o banco confirmou.
-    _apagar_arquivos(*caminhos)
+    apagar_arquivos(*caminhos)

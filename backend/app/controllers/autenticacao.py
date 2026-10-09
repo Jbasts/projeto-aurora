@@ -11,6 +11,7 @@ from app.schemas.autenticacao import (
     EmailEntrada,
     LoginEntrada,
     MensagemSaida,
+    RecuperarSenhaEntrada,
     RedefinirSenhaEntrada,
     SessaoSaida,
     TokenEntrada,
@@ -19,6 +20,7 @@ from app.schemas.autenticacao import (
 )
 from app.services import autenticacao as servico_autenticacao
 from app.services import recuperacao_senha as servico_recuperacao
+from app.services import solicitacoes as servico_solicitacoes
 from app.services import verificacao_email as servico_verificacao
 from app.services.email import EnviadorEmail, enviar_sem_falhar
 
@@ -54,7 +56,7 @@ def _abrir_sessao(resposta: Response, usuario: Usuario) -> SessaoSaida:
 
 
 def entrar(sessao: Session, dados: LoginEntrada, ip: str | None, resposta: Response) -> SessaoSaida:
-    usuario = servico_autenticacao.autenticar(sessao, dados.email, dados.senha, ip)
+    usuario = servico_autenticacao.autenticar(sessao, dados.login, dados.senha, ip)
     return _abrir_sessao(resposta, usuario)
 
 
@@ -68,9 +70,13 @@ def sair(resposta: Response) -> None:
 
 
 def cadastrar(
-    sessao: Session, dados: CadastroEntrada, tarefas: BackgroundTasks, enviador: EnviadorEmail
+    sessao: Session,
+    dados: CadastroEntrada,
+    foto: bytes,
+    tarefas: BackgroundTasks,
+    enviador: EnviadorEmail,
 ) -> MensagemSaida:
-    _, email = servico_autenticacao.cadastrar(sessao, dados)
+    _, email = servico_autenticacao.cadastrar(sessao, dados, foto)
     tarefas.add_task(enviar_sem_falhar, enviador, email)
     return MensagemSaida(mensagem=MENSAGEM_CADASTRO_ENVIADO)
 
@@ -89,13 +95,18 @@ def verificar_email(sessao: Session, dados: TokenEntrada, ip: str | None) -> Men
     return MensagemSaida(mensagem=servico_verificacao.MENSAGEM_EMAIL_CONFIRMADO)
 
 
+def confirmar_troca_email(sessao: Session, dados: TokenEntrada, ip: str | None) -> MensagemSaida:
+    servico_solicitacoes.confirmar_email(sessao, dados.token, ip)
+    return MensagemSaida(mensagem=servico_solicitacoes.MENSAGEM_EMAIL_CONFIRMADO)
+
+
 def solicitar_recuperacao(
     sessao: Session,
-    dados: EmailEntrada,
+    dados: RecuperarSenhaEntrada,
     tarefas: BackgroundTasks,
     enviador: EnviadorEmail,
 ) -> MensagemSaida:
-    email = servico_recuperacao.solicitar(sessao, dados.email)
+    email = servico_recuperacao.solicitar(sessao, dados.login)
     if email is not None:
         # Envio em segundo plano: o tempo de resposta não revela se o email existe.
         tarefas.add_task(enviar_sem_falhar, enviador, email)

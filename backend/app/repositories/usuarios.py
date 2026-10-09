@@ -26,10 +26,22 @@ def buscar_por_email(sessao: Session, email: str) -> Usuario | None:
     return sessao.scalar(select(Usuario).where(Usuario.email == email))
 
 
+def buscar_por_cpf(sessao: Session, cpf: str) -> Usuario | None:
+    return sessao.scalar(select(Usuario).where(Usuario.cpf == cpf))
+
+
+def buscar_por_foto(sessao: Session, foto_id: uuid.UUID) -> Usuario | None:
+    return sessao.scalar(select(Usuario).where(Usuario.foto_id == foto_id))
+
+
 def adicionar(sessao: Session, usuario: Usuario) -> Usuario:
     sessao.add(usuario)
     sessao.flush()
     return usuario
+
+
+def _nome_completo():
+    return func.concat_ws(" ", Usuario.nome, Usuario.sobrenome)
 
 
 def _escapar_like(termo: str) -> str:
@@ -54,7 +66,7 @@ def listar(
         padrao = f"%{_escapar_like(busca)}%"
         filtros.append(
             or_(
-                func.unaccent(Usuario.nome).ilike(func.unaccent(padrao), escape="\\"),
+                func.unaccent(_nome_completo()).ilike(func.unaccent(padrao), escape="\\"),
                 Usuario.email.ilike(padrao, escape="\\"),
             )
         )
@@ -69,7 +81,7 @@ def listar(
         .where(*filtros)
         .order_by(
             case((Usuario.status == StatusUsuario.PENDENTE, 0), else_=1),
-            func.lower(func.unaccent(Usuario.nome)),
+            func.lower(func.unaccent(_nome_completo())),
             Usuario.id,
         )
         .offset((pagina - 1) * tamanho)
@@ -95,4 +107,6 @@ def travar_admins_ativos(sessao: Session) -> list[uuid.UUID]:
 def nomes_por_id(sessao: Session, ids: set[uuid.UUID]) -> dict[uuid.UUID, str]:
     if not ids:
         return {}
-    return dict(sessao.execute(select(Usuario.id, Usuario.nome).where(Usuario.id.in_(ids))).all())
+    return dict(
+        sessao.execute(select(Usuario.id, _nome_completo()).where(Usuario.id.in_(ids))).all()
+    )

@@ -44,10 +44,11 @@ export function AutenticacaoProvider({ children }: { children: ReactNode }) {
     return () => definirAoExpirarSessao(null)
   }, [encerrarLocalmente])
 
-  const entrar = useCallback(async (email: string, senha: string) => {
+  // login: email ou CPF.
+  const entrar = useCallback(async (login: string, senha: string) => {
     const sessao = await requisitar<SessaoResposta>('/auth/login', {
       metodo: 'POST',
-      corpo: { email, senha },
+      corpo: { login, senha },
       renovarSeExpirado: false,
     })
     definirAccessToken(sessao.access_token)

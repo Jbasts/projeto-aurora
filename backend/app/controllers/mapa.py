@@ -24,7 +24,7 @@ from app.services.geocodificacao import Geocodificador
 def _registrador(usuario: Usuario | None) -> RegistradorRef | None:
     if usuario is None:
         return None
-    return RegistradorRef(id=usuario.id, nome=usuario.nome, perfil=usuario.perfil)
+    return RegistradorRef(id=usuario.id, nome=usuario.nome_completo, perfil=usuario.perfil)
 
 
 def marcadores(sessao: Session) -> list[MarcadorSaida]:

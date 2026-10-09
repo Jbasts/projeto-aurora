@@ -5,7 +5,7 @@ from slowapi.errors import RateLimitExceeded
 from app.core.config import PREFIXO_API, obter_configuracoes
 from app.core.erros import registrar_tratadores_de_erro
 from app.core.limite import limiter, tratar_limite_excedido
-from app.routes import auditoria, autenticacao, mapa, pessoas, saude, usuarios
+from app.routes import auditoria, autenticacao, mapa, pessoas, saude, solicitacoes, usuarios
 
 
 def criar_app() -> FastAPI:
@@ -27,10 +27,12 @@ def criar_app() -> FastAPI:
     app.include_router(autenticacao.router, prefix=PREFIXO_API)
     app.include_router(usuarios.router, prefix=PREFIXO_API)
     app.include_router(usuarios.router_me, prefix=PREFIXO_API)
+    app.include_router(usuarios.router_arquivos, prefix=PREFIXO_API)
     app.include_router(pessoas.router, prefix=PREFIXO_API)
     app.include_router(pessoas.router_arquivos, prefix=PREFIXO_API)
     app.include_router(mapa.router, prefix=PREFIXO_API)
     app.include_router(auditoria.router, prefix=PREFIXO_API)
+    app.include_router(solicitacoes.router, prefix=PREFIXO_API)
     return app
 
 

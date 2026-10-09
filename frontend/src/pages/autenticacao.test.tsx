@@ -1,15 +1,26 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { mascaraTelefone } from '../components/formulario/mascaras'
 import { formatarMinutosSegundos } from '../hooks/useContagemRegressiva'
 import { mockarApi, renderizarApp, SEM_SESSAO, type RespostaFalsa } from '../test/utilitarios'
 
+beforeEach(() => {
+  // jsdom não cria URLs de prévia de arquivos.
+  URL.createObjectURL = vi.fn(() => 'blob:previa')
+  URL.revokeObjectURL = vi.fn()
+})
+
+/** Foto fictícia para o cadastro (só o tipo importa no frontend). */
+function fotoTeste(tipo = 'image/png', nome = 'foto.png') {
+  return new File(['imagem'], nome, { type: tipo })
+}
+
 describe('Login', () => {
   async function preencherEEntrar(email = 'ana@exemplo.com', senha = 'SenhaBoa123') {
     const usuario = userEvent.setup()
-    await usuario.type(await screen.findByLabelText('Email'), email)
+    await usuario.type(await screen.findByLabelText('Email ou CPF'), email)
     await usuario.type(screen.getByLabelText('Senha'), senha)
     await usuario.click(screen.getByRole('button', { name: 'Entrar' }))
     return usuario
@@ -66,10 +77,12 @@ describe('Login', () => {
     renderizarApp('/login')
     await usuario.click(await screen.findByRole('button', { name: 'Entrar' }))
 
-    expect(await screen.findByText('Informe seu email.')).toBeInTheDocument()
+    expect(await screen.findByText('Informe seu email ou CPF.')).toBeInTheDocument()
     expect(screen.getByText('Informe sua senha.')).toBeInTheDocument()
-    expect(screen.getByLabelText('Email')).toHaveAttribute('aria-invalid', 'true')
-    expect(screen.getByLabelText('Email')).toHaveAccessibleDescription('Informe seu email.')
+    expect(screen.getByLabelText('Email ou CPF')).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByLabelText('Email ou CPF')).toHaveAccessibleDescription(
+      'Informe seu email ou CPF.',
+    )
     expect(chamadas.map((c) => c.chave)).not.toContain('POST /auth/login')
   })
 
@@ -99,9 +112,12 @@ const RESPOSTA_VIACEP: RespostaFalsa = {
 describe('Cadastro', () => {
   async function preencher(senha = 'SenhaBoa123', confirmar = senha) {
     const usuario = userEvent.setup()
-    await usuario.type(await screen.findByLabelText('Nome'), 'Ana Souza')
+    await usuario.type(await screen.findByLabelText('Nome'), 'Ana')
+    await usuario.type(screen.getByLabelText('Sobrenome'), 'Souza')
+    await usuario.type(screen.getByLabelText('CPF'), '52998224725')
     await usuario.type(screen.getByLabelText('Email'), 'ana@exemplo.com')
-    await usuario.type(screen.getByLabelText('Telefone (opcional)'), '24988887777')
+    await usuario.type(screen.getByLabelText('Celular'), '24988887777')
+    await usuario.upload(screen.getByLabelText('Sua foto'), fotoTeste())
     await usuario.type(screen.getByLabelText('CEP'), '25651000')
     await waitFor(() =>
       expect(screen.getByLabelText('Rua')).toHaveValue('Rua Afrânio de Melo Franco'),
@@ -187,11 +203,28 @@ describe('Cadastro', () => {
     expect(requisitos.getByText(/Pelo menos um número/)).toHaveTextContent('(atendido)')
   })
 
-  it('aplica a máscara no telefone', async () => {
+  it('valida o CPF e o celular', async () => {
+    mockarApi({ 'POST /auth/refresh': SEM_SESSAO })
+    const usuario = userEvent.setup()
+    renderizarApp('/cadastro')
+    await usuario.type(await screen.findByLabelText('CPF'), '52998224724')
+    await usuario.type(screen.getByLabelText('Celular'), '2422334455')
+    await usuario.click(screen.getByRole('button', { name: 'Cadastrar' }))
+
+    expect(await screen.findByText('Informe um CPF válido.')).toBeInTheDocument()
+    expect(screen.getByLabelText('CPF')).toHaveValue('529.982.247-24')
+    expect(screen.getByLabelText('Celular')).toHaveAccessibleDescription(
+      'Informe o celular com DDD, no formato (00) 00000-0000.',
+    )
+    expect(screen.getByText('Informe seu sobrenome.')).toBeInTheDocument()
+  })
+
+  it('aplica a máscara no telefone e no CPF', async () => {
     mockarApi({ 'POST /auth/refresh': SEM_SESSAO, [VIACEP]: RESPOSTA_VIACEP })
     renderizarApp('/cadastro')
     await preencher()
-    expect(screen.getByLabelText('Telefone (opcional)')).toHaveValue('(24) 98888-7777')
+    expect(screen.getByLabelText('Celular')).toHaveValue('(24) 98888-7777')
+    expect(screen.getByLabelText('CPF')).toHaveValue('529.982.247-25')
   })
 
   it('avisa quando as senhas não são iguais', async () => {
@@ -220,9 +253,12 @@ describe('Cadastro', () => {
     expect(screen.getByText(/pessoa\s+administradora vai analisar/)).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/cadastro-enviado')
     expect(chamadas.find((c) => c.chave === 'POST /auth/cadastro')?.corpo).toEqual({
-      nome: 'Ana Souza',
+      nome: 'Ana',
+      sobrenome: 'Souza',
+      cpf: '529.982.247-25',
       email: 'ana@exemplo.com',
       telefone: '(24) 98888-7777',
+      foto: expect.any(File),
       senha: 'SenhaBoa123',
       confirmar_senha: 'SenhaBoa123',
       cep: '25651-000',
@@ -310,7 +346,7 @@ describe('Confirmação de email', () => {
       },
     })
     renderizarApp('/login')
-    await usuario.type(await screen.findByLabelText('Email'), 'ana@exemplo.com')
+    await usuario.type(await screen.findByLabelText('Email ou CPF'), 'ana@exemplo.com')
     await usuario.type(screen.getByLabelText('Senha'), 'SenhaBoa123')
     await usuario.click(screen.getByRole('button', { name: 'Entrar' }))
 
@@ -321,18 +357,20 @@ describe('Confirmação de email', () => {
 
 describe('Recuperar senha', () => {
   it('mostra a mensagem neutra depois de pedir o email', async () => {
-    const neutra =
-      'Se este email estiver cadastrado, você vai receber um link para criar uma nova senha.'
-    mockarApi({
+    const neutra = 'Se este email ou CPF estiver cadastrado, você vai receber um link.'
+    const { chamadas } = mockarApi({
       'POST /auth/refresh': SEM_SESSAO,
       'POST /auth/recuperar-senha': { corpo: { mensagem: neutra } },
     })
     const usuario = userEvent.setup()
     renderizarApp('/recuperar-senha')
-    await usuario.type(await screen.findByLabelText('Email'), 'qualquer@exemplo.com')
+    await usuario.type(await screen.findByLabelText('Email ou CPF'), 'qualquer@exemplo.com')
     await usuario.click(screen.getByRole('button', { name: 'Receber email' }))
 
     expect(await screen.findByRole('status')).toHaveTextContent(neutra)
+    expect(chamadas.find((c) => c.chave === 'POST /auth/recuperar-senha')?.corpo).toEqual({
+      login: 'qualquer@exemplo.com',
+    })
     expect(screen.getByRole('link', { name: 'Voltar ao login' })).toHaveAttribute('href', '/login')
   })
 })
